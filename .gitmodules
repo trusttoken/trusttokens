@@ -1,0 +1,3 @@
+[submodule "true-currencies"]
+	path = true-currencies
+	url = git@github.com:trusttoken/true-currencies.git
