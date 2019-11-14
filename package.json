@@ -1,0 +1,28 @@
+{
+  "name": "trusttokens",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "./test.sh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/trusttoken/trusttokens.git"
+  },
+  "author": "William Morriss",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/trusttoken/trusttokens/issues"
+  },
+  "dependencies": {
+    "babel-polyfill": "6.26.0",
+    "babel-preset-env": "1.6.1",
+    "ganache-cli": "6.1.0",
+    "openzeppelin-solidity": "1.9.0",
+    "truffle": "5.0.4",
+    "truffle-hdwallet-provider": "0.0.3",
+    "web3": "1.2.2"
+  },
+  "homepage": "https://github.com/trusttoken/trusttokens#readme"
+}
