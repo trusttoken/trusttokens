@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.5.13;
 
 /**
  * Forked subset of Openzeppelin SafeMath allowing custom underflow/overflow messages
@@ -11,5 +11,16 @@ library SafeMath {
     function sub(uint256 a, uint256 b, string memory underflowMessage) internal pure returns (uint256 result) {
         require(b <= a, underflowMessage);
         result = a - b;
+    }
+    function mul(uint256 a, uint256 b, string memory overflowMessage) internal pure returns (uint256 result) {
+        if (a == 0) {
+            return 0;
+        }
+        result = a * b;
+        require(result / a == b, overflowMessage);
+    }
+    function div(uint256 a, uint256 b, string memory divideByZeroMessage) internal pure returns (uint256 result) {
+        require(b > 0, errorMessage);
+        result = a / b;
     }
 }

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.5.13;
 
 import "../true-currencies/registry/contracts/Registry.sol";
 
@@ -12,11 +12,11 @@ contract ProxyStorage {
     address public pendingOwner;
 
     uint256 public totalSupply;
-    Registry registry;
 
     mapping (address => uint256) public balanceOf;
     mapping (address => mapping (address => uint256)) public allowance;
-    mapping (bytes32 => mapping (address => uint256)) public attributes;
+    mapping (uint144 => bytes32) attributes; // see RegistrySubscriber
+
 
     /* Additionally, we have several keccak-based storage locations.
      * If you add more keccak-based storage mappings, such as mappings, you must document them here.
@@ -30,8 +30,8 @@ contract ProxyStorage {
      ** 19         "trueXXX.proxy.owner"                                         Proxy Owner
      ** 27         "trueXXX.pending.proxy.owner"                                 Pending Proxy Owner
      ** 28         "trueXXX.proxy.implementation"                                Proxy Implementation
-     ** 64         uint256(address),uint256(14)                                  balanceOf
-     ** 64         uint256(address),keccak256(uint256(address),uint256(15))      allowance
-     ** 64         uint256(address),keccak256(bytes32,uint256(16))               attributes
+     ** 64         uint256(address),uint256(4)                                  balanceOf
+     ** 64         uint256(address),keccak256(uint256(address),uint256(5))      allowance
+     ** 64         uint256(address),keccak256(bytes32,uint256(6))               attributes
     **/
 }

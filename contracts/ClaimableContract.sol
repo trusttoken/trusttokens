@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.5.13;
 
 import "./ProxyStorage.sol";
 
@@ -28,7 +28,7 @@ contract ClaimableContract is ProxyStorage {
     * @dev Throws if called by any account other than the owner.
     */
     modifier onlyOwner() {
-        require(msg.sender == owner, "only Owner");
+        require(msg.sender == owner, "only owner");
         _;
     }
 
