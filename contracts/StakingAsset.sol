@@ -71,5 +71,10 @@ contract StakedToken is ValTokenWithHook {
 
     function award(uint256 _amount) external {
         require(stakeAsset().transferFrom(msg.sender, address(rewardPool()), _amount));
+        uint256 remainder = rewardsRemainder.add(_amount, "overflow");
+        uint256 totalStake = totalSupply;
+        uint256 rewardsAdded = remainder.div(totalStake, "total stake is zero");
+        rewardsRemainder = remainder % totalStake;
+        cumulativeRewardsPerStake = cumulativeRewardsPerStake.add(rewardsAdded, "cumulative rewards overflow");
     }
 }
