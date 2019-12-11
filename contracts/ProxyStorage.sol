@@ -15,7 +15,7 @@ contract ProxyStorage {
 
     mapping (address => uint256) public balanceOf;
     mapping (address => mapping (address => uint256)) public allowance;
-    mapping (uint144 => bytes32) attributes; // see RegistrySubscriber
+    mapping (uint144 => uint256) attributes; // see RegistrySubscriber
 
 
     /* Additionally, we have several keccak-based storage locations.

@@ -1,7 +1,7 @@
 pragma solidity ^0.5.13;
 
-import "./SafeMath.sol";
 import "./ClaimableContract.sol";
+import "./SafeMath.sol";
 
 
 // Fork of OpenZeppelin's BasicToken
@@ -38,6 +38,7 @@ contract ModularBasicToken is ClaimableContract {
  */
 contract ModularStandardToken is ModularBasicToken {
     using SafeMath for uint256;
+    uint256 constant INFINITE_ALLOWANCE = 0xfe00000000000000000000000000000000000000000000000000000000000000;
     
     event Approval(address indexed owner, address indexed spender, uint256 value);
     
@@ -114,7 +115,9 @@ contract ModularStandardToken is ModularBasicToken {
 
     function _subAllowance(address _who, address _spender, uint256 _value) internal returns (uint256 newAllowance){
         newAllowance = allowance[_who][_spender].sub(_value, "insufficient allowance");
-        allowance[_who][_spender] = newAllowance;
+        if (newAllowance < INFINITE_ALLOWANCE) {
+            allowance[_who][_spender] = newAllowance;
+        }
     }
 
     function _setAllowance(address _who, address _spender, uint256 _value) internal {

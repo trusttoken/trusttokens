@@ -20,7 +20,7 @@ library SafeMath {
         require(result / a == b, overflowMessage);
     }
     function div(uint256 a, uint256 b, string memory divideByZeroMessage) internal pure returns (uint256 result) {
-        require(b > 0, errorMessage);
+        require(b > 0, divideByZeroMessage);
         result = a / b;
     }
 }

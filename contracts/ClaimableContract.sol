@@ -57,4 +57,3 @@ contract ClaimableContract is ProxyStorage {
         pendingOwner = address(0);
     }
 }
-
