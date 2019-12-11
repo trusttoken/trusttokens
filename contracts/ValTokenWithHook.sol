@@ -4,7 +4,7 @@ import "./ERC20.sol";
 import "./RegistrySubscriber.sol";
 import "../true-currencies/contracts/TrueCoinReceiver.sol";
 
-contract ValTokenWithHook is ModularStandardToken, RegistrySubscriber {
+contract ValTokenWithHook is IERC20, ModularStandardToken, RegistrySubscriber {
 
     event Burn(address indexed from, uint256 indexed amount);
     event Mint(address indexed to, uint256 indexed amount);
