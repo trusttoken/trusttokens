@@ -42,10 +42,11 @@ contract StakedToken is ValTokenWithHook {
         if (stake == 0) {
             return 0;
         }
-        unclaimedRewards_ = stake.mul(cumulativeRewardsPerStake.sub(claimedRewardsPerStake[_staker], "underflow"), "overflow");
+        unclaimedRewards_ = stake.mul(cumulativeRewardsPerStake.sub(claimedRewardsPerStake[_staker], "underflow"), "unclaimed rewards overflow");
     }
 
     function stakeAsset() internal view returns (StakingAsset);
+    function rewardAsset() internal view returns (StakingAsset);
     function rewardPool() internal view returns (RewardPool);
 
     function _transferAllArgs(address _from, address _to, uint256 _value) internal {
@@ -161,11 +162,25 @@ contract StakedToken is ValTokenWithHook {
     }
 
     function award(uint256 _amount) external {
-        require(stakeAsset().transferFrom(msg.sender, address(rewardPool()), _amount));
+        require(rewardAsset().transferFrom(msg.sender, address(rewardPool()), _amount));
         uint256 remainder = rewardsRemainder.add(_amount, "overflow");
         uint256 totalStake = totalSupply;
         uint256 rewardsAdded = remainder.div(totalStake, "total stake is zero");
         rewardsRemainder = remainder % totalStake;
         cumulativeRewardsPerStake = cumulativeRewardsPerStake.add(rewardsAdded, "cumulative rewards overflow");
+    }
+
+    function claimRewards(address _destination) external {
+        uint256 stake = balanceOf[msg.sender];
+        if (stake == 0) {
+            return;
+        }
+        uint256 dueRewards = stake.mul(cumulativeRewardsPerStake.sub(claimedRewardsPerStake[msg.sender], "underflow"), "dueRewards overflow");
+        if (dueRewards == 0) {
+            return;
+        }
+        claimedRewardsPerStake[msg.sender] = cumulativeRewardsPerStake;
+        require(attributes[uint144(uint160(msg.sender) >> 20)] & ACCOUNT_KYC != 0, "please register at app.trusttoken.com");
+        require(rewardAsset().transferFrom(address(rewardPool()), _destination, dueRewards));
     }
 }
