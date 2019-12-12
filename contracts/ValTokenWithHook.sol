@@ -56,11 +56,12 @@ contract ValTokenWithHook is IERC20, ModularStandardToken, RegistrySubscriber {
         }
     }
 
-    function _burn(address _from, uint256 _value) internal {
+    function _burn(address _from, uint256 _value) internal returns (uint256 resultBalance_, uint256 resultSupply_) {
         emit Transfer(_from, address(0), _value);
         emit Burn(_from, _value);
-        _subBalance(_from, _value);
-        totalSupply -= _value;
+        resultBalance_ = _subBalance(_from, _value);
+        resultSupply_ = totalSupply.sub(_value, "removing more stake than in supply");
+        totalSupply = resultSupply_;
     }
 
     function _mint(address _to, uint256 _value) internal {
