@@ -1,14 +1,14 @@
 pragma solidity ^0.5.13;
 
 import "../true-currencies/registry/contracts/Registry.sol";
-import "./StakingAsset.sol";
+import "./mocks/MockStakedToken.sol";
 import "./SafeMath.sol";
 
 
 contract StakingPool {
     using SafeMath for uint256;
     mapping (address => uint256) attributes;
-    IERC20[] stakedTokens; 
+    StakingAsset[] stakedTokens; 
 
     bytes32 constant CAN_STAKE = "canStake";
 
@@ -22,8 +22,9 @@ contract StakingPool {
     uint256 constant PRECISION = 21000;
     uint256 constant FAVOR = 2;
     function registry() internal view returns (Registry);
-    function rewardAsset() internal view returns (IERC20);
-    function favoredAsset() internal view returns (IERC20);
+    function rewardAsset() internal view returns (StakingAsset);
+    function favoredAsset() internal view returns (StakingAsset);
+    function liquidator() internal view returns (address);
     function uniswapFor(IERC20 asset1, IERC20 asset2) internal view returns (IERC20);
 
     event StakingOpportunity(IERC20 asset, StakedToken stakedAsset); 
@@ -48,13 +49,14 @@ contract StakingPool {
         return StakedToken(address(attributes[address(_token)]));
     }
 
-    function createStakingOpportunity(IERC20 _token) external {
+    function createStakingOpportunity(StakingAsset _token) external {
         uint256 flags = attributes[address(_token)];
         if (flags & ATTRIBUTE_CAN_STAKE == 0 || flags & ATTRIBUTE_STAKE_ADDRESS != 0) {
             return;
         }
         stakedTokens.push(_token);
-        StakedToken asset = new StakedToken(_token);
+        // XXX
+        StakedToken asset = new MockStakedToken(_token, rewardAsset(), registry(), liquidator());
         attributes[address(_token)] |= uint256(address(asset));
         emit StakingOpportunity(_token, asset);
     }
@@ -73,7 +75,7 @@ contract StakingPool {
         uint256[] memory partialValues = new uint256[](len);
         uint256 total = 0;
         for (uint256 i = len; i --> 0;) {
-            IERC20 token = stakedTokens[i];
+            StakingAsset token = stakedTokens[i];
             assets[i] = token;
             StakedToken stakedToken = stakedAssetForAsset(token);
             assetPools[i] = stakedToken;
