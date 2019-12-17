@@ -1,9 +1,9 @@
 pragma solidity ^0.5.13;
 
-import "../true-currencies/contracts/CompliantDepositTokenWithHook.sol";
+import "./ValTokenWithHook.sol";
 
 
-contract TrustToken is CompliantDepositTokenWithHook {
+contract TrustToken is ValTokenWithHook {
     function decimals() public pure returns (uint8) {
         return 18;
     }
@@ -14,6 +14,6 @@ contract TrustToken is CompliantDepositTokenWithHook {
         return "TrustToken";
     }
     function symbol() public pure returns (string memory) {
-        return "TRU";
+        return "TRUST";
     }
 }

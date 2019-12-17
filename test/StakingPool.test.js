@@ -1,7 +1,9 @@
 const Registry = artifacts.require('RegistryMock')
 //const WhitelistedFungibleToken = artifacts.require('WhitelistedFungibleToken')
-const MintableWhitelistedFungibleToken = artifacts.require('MintableWhitelistedFungibleToken')
+const MockStakingPool = artifacts.require('MockStakingPool')
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy')
+const MockTrustToken = artifacts.require('MockTrustToken')
+const TrueUSD = artifacts.require('TrueUSD')
 
 const bytes32 = require('../true-currencies/test/helpers/bytes32.js')
 const assertRevert = require('../true-currencies/test/helpers/assertRevert.js')['default']
@@ -11,14 +13,20 @@ const PASSED_KYCAML = bytes32('hasPassedKYC/AML')
 const BN = web3.utils.toBN
 const ONE_HUNDRED = BN(100).mul(BN(1e18))
 
-contract('WhitelistedFungibleToken', function(accounts) {
-    const [_, owner, issuer, oneHundred, account1, account2] = accounts
+contract('StakingPool', function(accounts) {
+    const [_, owner, issuer, oneHundred, account1, account2, fakeUniswap, fakeLiquidator] = accounts
     beforeEach(async function() {
-        this.registry = await Registry.new({ from: owner })
-        this.token = await MintableWhitelistedFungibleToken.new({from: issuer})
-        await this.token.setRegistry(this.registry.address, {from: issuer})
+        this.registry = await Registry.new({ from: owner });
+        this.rewardToken = await TrueUSD.new({ from: issuer });
+        this.favoredToken = await MockTrustToken.new({ from: issuer });
+        this.pool = await MockStakingPool.new(this.registry.address, this.rewardToken.address, this.favoredToken.address, fakeUniswap, fakeLiquidator, {from: owner})
+        await this.rewardToken.setRegistry(this.registry.address, {from: issuer})
+        await this.rewardToken.mint(fakeUniswap, ONE_HUNDRED, {from:issuer});
+        await this.rewardToken.mint(oneHundred, ONE_HUNDRED, {from:issuer});
+        await this.favoredToken.mint(fakeUniswap, ONE_HUNDRED, {from:issuer});
+        await this.favoredToken.mint(oneHundred, ONE_HUNDRED, {from:issuer});
     })
-    describe('MintableWhitelistedFungibleToken', function() {
+    describe('StakingPool', function() {
         it('Cannot mint to unregistered recipient', async function() {
             await assertRevert(this.token.mint(oneHundred, ONE_HUNDRED))
         })
