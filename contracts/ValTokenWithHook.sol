@@ -72,7 +72,7 @@ contract ValTokenWithHook is IERC20, ModularStandardToken, RegistrySubscriber {
             emit Transfer(_to, to, _value);
         }
         _addBalance(to, _value);
-        totalSupply += _value;
+        totalSupply = totalSupply.add(_value, "totalSupply overflow");
         if (hook) {
             TrueCoinReceiver(to).tokenFallback(address(0x0), _value);
         }
