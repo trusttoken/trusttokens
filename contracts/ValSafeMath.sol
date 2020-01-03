@@ -4,7 +4,7 @@ pragma solidity ^0.5.13;
  * Forked subset of Openzeppelin SafeMath allowing custom underflow/overflow messages
  * Useful for debugging, replaceable with standard SafeMath
  */
-library SafeMath {
+library ValSafeMath {
     function add(uint256 a, uint256 b, string memory overflowMessage) internal pure returns (uint256 result) {
         result = a + b;
         require(result >= a, overflowMessage);

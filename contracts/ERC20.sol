@@ -1,7 +1,7 @@
 pragma solidity ^0.5.13;
 
 import "./ClaimableContract.sol";
-import "./SafeMath.sol";
+import "./ValSafeMath.sol";
 
 
 // Fork of OpenZeppelin's BasicToken
@@ -10,7 +10,7 @@ import "./SafeMath.sol";
  * @dev Basic version of StandardToken, with no allowances.
  */
 contract ModularBasicToken is ClaimableContract {
-    using SafeMath for uint256;
+    using ValSafeMath for uint256;
 
     event Transfer(address indexed from, address indexed to, uint256 value);
 
@@ -37,7 +37,7 @@ contract ModularBasicToken is ClaimableContract {
  * @dev Based on code by FirstBlood: https://github.com/Firstbloodio/token/blob/master/smart_contract/FirstBloodToken.sol
  */
 contract ModularStandardToken is ModularBasicToken {
-    using SafeMath for uint256;
+    using ValSafeMath for uint256;
     uint256 constant INFINITE_ALLOWANCE = 0xfe00000000000000000000000000000000000000000000000000000000000000;
     
     event Approval(address indexed owner, address indexed spender, uint256 value);
