@@ -33,5 +33,9 @@ contract('StakingPool', function(accounts) {
         it('creates staking opportunity', async function() {
             await this.pool.createStakingOpportunity(this.favoredToken.address);
         })
+
+        it('creates staking opportunity', async function() {
+            await this.pool.createStakingOpportunity(this.favoredToken.address);
+        })
     })
 })
