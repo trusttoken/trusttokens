@@ -2,6 +2,7 @@ pragma solidity ^0.5.13;
 
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "./ValTokenWithHook.sol";
+import "./ValSafeMath.sol";
 
 contract StakingAsset is IERC20 {
     function name() external returns (string memory);
@@ -23,7 +24,7 @@ contract RewardPool {
 
 
 contract StakedToken is ValTokenWithHook {
-    using SafeMath for uint256;
+    using ValSafeMath for uint256;
 
     uint256 cumulativeRewardsPerStake;
     mapping (address => uint256) claimedRewardsPerStake;

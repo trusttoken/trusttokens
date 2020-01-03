@@ -2,11 +2,11 @@ pragma solidity ^0.5.13;
 
 import "../true-currencies/registry/contracts/Registry.sol";
 import "./mocks/MockStakedToken.sol";
-import "./SafeMath.sol";
+import "./ValSafeMath.sol";
 
 
 contract StakingPool {
-    using SafeMath for uint256;
+    using ValSafeMath for uint256;
     mapping (address => uint256) attributes;
     StakingAsset[] stakedTokens; 
 
