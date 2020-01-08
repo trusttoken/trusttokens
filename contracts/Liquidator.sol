@@ -11,7 +11,7 @@ interface Uniswap {
     function tokenToTokenSwap(uint256 inputAmount, uint256 maxOutputAmount) external returns (uint256 outputAmount);
 }
 interface UniswapFactory {
-    function uniswapFor(IERC20 input, IERC20 output) external returns (Uniswap);
+    function getExchange(IERC20 input, IERC20 output) external returns (Uniswap);
 }
 
 contract Liquidator {
@@ -50,7 +50,7 @@ contract Liquidator {
     }
 
     function registerIntermediaryUniswap(IERC20 _inputToken, IERC20 _intermediaryToken) external {
-        Uniswap uniswap = uniswapFactory().uniswapFor(_inputToken, _intermediaryToken);
+        Uniswap uniswap = uniswapFactory().getExchange(_inputToken, _intermediaryToken);
         _inputToken.approve(address(uniswap), 0xff00000000000000000000000000000000000000000000000000000000000000);
         uint256 compatibilityID = uint256(address(_intermediaryToken)) ^ (uint256(address(_inputToken)) << 96);
         // TODO
@@ -78,7 +78,7 @@ contract Liquidator {
             tokenState[i].token = tokens[i];
             tokenState[i].stakedAsset = stakedAssets[i];
             tokenState[i].remainingInput = tokenState[i].token.balanceOf(stakedAssets[i]);
-            tokenState[i].directUniswap = uniswapFactory().uniswapFor(tokenState[i].token, outputToken());
+            tokenState[i].directUniswap = uniswapFactory().getExchange(tokenState[i].token, outputToken());
             tokenState[i].uniswapInputLiquidity = tokenState[i].token.balanceOf(address(tokenState[i].directUniswap));
             tokenState[i].uniswapOutputLiquidity = outputToken().balanceOf(address(tokenState[i].directUniswap));
             //(uint256 inputToken, uint256 inputConsumed, uint256 outputConsumed) = offers[i].info();

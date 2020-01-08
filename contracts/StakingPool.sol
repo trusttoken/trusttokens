@@ -25,7 +25,7 @@ contract StakingPool {
     function rewardAsset() internal view returns (StakingAsset);
     function favoredAsset() internal view returns (StakingAsset);
     function liquidator() internal view returns (address);
-    function uniswapFor(IERC20 asset1, IERC20 asset2) internal view returns (IERC20);
+    function getExchange(IERC20 asset1, IERC20 asset2) internal view returns (IERC20);
 
     event StakingOpportunity(IERC20 asset, StakedToken stakedAsset); 
 
@@ -79,7 +79,7 @@ contract StakingPool {
             assets[i] = token;
             StakedToken stakedToken = stakedAssetForAsset(token);
             assetPools[i] = stakedToken;
-            IERC20 uniswap = uniswapFor(reward, token);
+            IERC20 uniswap = getExchange(reward, token);
             uint256 partialValue = PRECISION * reward.balanceOf(address(uniswap)) / token.balanceOf(address(uniswap));
             if (token == favored) {
                 partialValue = partialValue.mul(FAVOR, "overflow");

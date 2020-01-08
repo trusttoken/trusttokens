@@ -19,7 +19,7 @@ contract MockStakingPool is StakingPool {
         liquidator_ = _liquidator;
     }
     
-    function uniswapFor(IERC20 asset1, IERC20 asset2) internal view returns (IERC20) {
+    function getExchange(IERC20 asset1, IERC20 asset2) internal view returns (IERC20) {
         return uniswap_;
     }
 
