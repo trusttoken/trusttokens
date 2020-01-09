@@ -44,8 +44,85 @@ contract Liquidator {
         }
     }
 
-    function registerAirswap(uint256 _expiry, address _counterparty, uint256 _nonce, address _inputToken, uint256 _inputAmount, uint256 _outputAmount, bytes32 _r, bytes32 _s, bytes32 _v) external {
-        uint256 compatibilityID = uint256(_nonce) ^ (uint256(_counterparty) << 96);
+    /**
+     * Airswap v2
+     * See 0x3E0c31C3D4067Ed5d7d294F08B79B6003B7bf9c8
+    **/
+    struct Order {
+        uint256 nonce;                // Unique per order and should be sequential
+        uint256 expiry;               // Expiry in seconds since 1 January 1970
+        Party signer;                 // Party to the trade that sets terms
+        Party sender;                 // Party to the trade that accepts terms
+        Party affiliate;              // Party compensated for facilitating (optional)
+        Signature signature;          // Signature of the order
+    }
+    struct Party {
+        bytes4 kind;                  // Interface ID of the token
+        address wallet;               // Wallet address of the party
+        address token;                // Contract address of the token
+        uint256 amount;               // Amount for ERC-20 or ERC-1155
+        uint256 id;                   // ID for ERC-721 or ERC-1155
+    }
+    struct Signature {
+        address signatory;            // Address of the wallet used to sign
+        address validator;            // Address of the intended swap contract
+        bytes1 version;               // EIP-191 signature version
+        uint8 v;                      // `v` value of an ECDSA signature
+        bytes32 r;                    // `r` value of an ECDSA signature
+        bytes32 s;                    // `s` value of an ECDSA signature
+    }
+    bytes4 constant ERC20_KIND = 0x36372b07;
+
+    function registerAirswap(Order calldata _order) external {
+        // TODO require _order.signature.validator is valid
+        require(_order.expiry > now + 1 hour);
+        require(_order.sender.wallet == address(this));
+        require(_order.signer.kind == ERC20_KIND);
+        require(_order.signer.token == outputToken())
+        require(_order.sender.kind == ERC20_KIND);
+        // require(_order.sender.token == stakeToken())
+        uint256 compatibilityID = uint256(_order.nonce) ^ (uint256(_order) << 96);
+        /*
+            Create an order contract with the bytecode to call the validator with the supplied args
+            During execution this liquidator will delegatecall into the order contract
+            The order contract copies its code to memory to mload the calldata and then executes call
+            The order contract returns the data from the validator
+            Though the return data is expected to be empty, we will still report whether the contract reverted, by reverting if it reverts
+            We do not need to worry about other contexts executing this contract because we check that the liquidator is the counterparty and the liquidator will authorize no spenders
+            Deploy (10 bytes)
+        PC  Opcodes                                       Assembly         Stack
+        00  610312                                        PUSH2 0312       786
+        03  80                                            DUP1             786 786
+        04  600A                                          PUSH1 0A         786 786 10
+        06  3D                                            RETURNDATASIZE   786 786 10 0
+        07  39                                            CODECOPY         786
+        08  3D                                            RETURNDATASIZE   786 0
+        09  F3                                            RETURN
+            Order Contract (786 bytes)
+        PC  Opcodes                                       Assembly         Stack                                         Notes
+        00  38                                            CODESIZE         cs
+        01  3D                                            RETURNDATASIZE   cs 0
+        02  3D                                            RETURNDATASIZE   cs 0 0
+        03  39                                            CODECOPY
+        04  3D                                            RETURNDATASIZE   0                                             (outSize)
+        05  3D                                            RETURNDATASIZE   0 0                                           (outStart)
+        06  6102E4                                        PUSH2 2E4        0 0 740                                       (inSize)
+        09  602F                                          PUSH1 2F         0 0 740 2F                                    (inStart)
+        0b  3D                                            RETURNDATASIZE   0 0 740 2F 0                                  wei
+        0c  73xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx    PUSH20 validator 0 0 740 2F 0 validator                        address
+        21  5A                                            GAS              0 0 740 2F 0 validator gas
+        22  F1                                            CALL             revert
+        23  602A                                          PUSH1 2A         revert goto
+        25  57                                            JUMPI
+        26  3D                                            RETURNDATASIZE   rds
+        27  6000                                          PUSH1 0          rds 0
+        29  F3                                            RETURN
+        2a  5B                                            JUMPDEST
+        2b  3D                                            RETURNDATASIZE   rds
+        2c  6000                                          PUSH1 0          rds 0
+        2e  FD                                            REVERT
+        2f  <>                                            <Order Calldata>                                               size of Order calldata is 740 bytes
+        */
         // TODO
     }
 
