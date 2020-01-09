@@ -75,7 +75,7 @@ contract Liquidator {
     }
     bytes4 constant ERC20_KIND = 0x36372b07;
 
-    function registerAirswap(Order calldata _order) external {
+    function registerAirswap(Order calldata _order) external returns (TradeExecutor orderContract) {
         // TODO require _order.signature.validator is valid
         require(_order.expiry > now + 1 hours);
         require(_order.sender.wallet == address(this));
@@ -84,6 +84,7 @@ contract Liquidator {
         require(_order.sender.kind == ERC20_KIND);
         // require(_order.sender.token == stakeToken())
         uint256 compatibilityID = uint256(_order.nonce) ^ (uint256(_order.signer.wallet) << 96);
+        address validator = _order.signature.validator;
         /*
             Create an order contract with the bytecode to call the validator with the supplied args
             During execution this liquidator will delegatecall into the order contract
@@ -123,9 +124,17 @@ contract Liquidator {
         2b  3D                                            RETURNDATASIZE   rds
         2c  6000                                          PUSH1 0          rds 0
         2e  FD                                            REVERT
-        2f  <>                                            <Order Calldata>                                               size of Order calldata is 740 bytes
+        2f  67641C2F<>                                    <Order Calldata>                                               size of Order calldata is 740 bytes
         */
-        // TODO
+        assembly {
+            let start := mload(0x40)
+            mstore(start,             0x00000000000000000000000000000000000000000061031280600A3D393DF338)
+            mstore(add(start, 32), or(0x3D3D393D3D6102E4602F3D730000000000000000000000000000000000000000, validator))
+            mstore(add(start, 64),    0x5AF1602A573D6000F35B3D6000FD67641C2F0000000000000000000000000000)
+            calldatacopy(add(start, 92), 4, 736)
+            orderContract := create(0, add(start, 21), 796)
+        }
+        // TODO insert into orders
     }
 
     function registerIntermediaryUniswap(IERC20 _inputToken, IERC20 _intermediaryToken) external {
