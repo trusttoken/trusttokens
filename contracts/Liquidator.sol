@@ -75,6 +75,12 @@ contract Liquidator {
     }
     bytes4 constant ERC20_KIND = 0x36372b07;
 
+    function airswapOrderInfo(TradeExecutor _airswapOrderContract) public view returns (Order memory order) {
+        assembly {
+            extcodecopy(_airswapOrderContract, order, 50, 736)
+        }
+    }
+
     function registerAirswap(Order calldata _order) external returns (TradeExecutor orderContract) {
         // TODO require _order.signature.validator is valid
         require(_order.expiry > now + 1 hours);
