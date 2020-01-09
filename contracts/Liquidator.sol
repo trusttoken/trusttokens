@@ -1,5 +1,7 @@
 pragma solidity ^0.5.13;
 
+pragma experimental ABIEncoderV2;
+
 
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
@@ -59,7 +61,7 @@ contract Liquidator {
     struct Party {
         bytes4 kind;                  // Interface ID of the token
         address wallet;               // Wallet address of the party
-        address token;                // Contract address of the token
+        IERC20 token;                // Contract address of the token
         uint256 amount;               // Amount for ERC-20 or ERC-1155
         uint256 id;                   // ID for ERC-721 or ERC-1155
     }
@@ -75,13 +77,13 @@ contract Liquidator {
 
     function registerAirswap(Order calldata _order) external {
         // TODO require _order.signature.validator is valid
-        require(_order.expiry > now + 1 hour);
+        require(_order.expiry > now + 1 hours);
         require(_order.sender.wallet == address(this));
         require(_order.signer.kind == ERC20_KIND);
-        require(_order.signer.token == outputToken())
+        require(_order.signer.token == outputToken());
         require(_order.sender.kind == ERC20_KIND);
         // require(_order.sender.token == stakeToken())
-        uint256 compatibilityID = uint256(_order.nonce) ^ (uint256(_order) << 96);
+        uint256 compatibilityID = uint256(_order.nonce) ^ (uint256(_order.signer.wallet) << 96);
         /*
             Create an order contract with the bytecode to call the validator with the supplied args
             During execution this liquidator will delegatecall into the order contract
