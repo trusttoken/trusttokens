@@ -17,6 +17,7 @@
     "url": "https://github.com/trusttoken/trusttokens/issues"
   },
   "dependencies": {
+    "wjm-airswap-swap": "5.0.1",
     "babel-polyfill": "6.26.0",
     "babel-preset-env": "1.6.1",
     "ganache-cli": "6.1.0",
