@@ -24,26 +24,20 @@ contract Liquidator {
         Invariant: only one offer per compatibilityID
         Invariant: orders are sorted by greatest output amount
     */
-    TradeExecutor[][] offers;
-    IERC20[] tokens;
-    address[] stakedAssets;
+    // sorted linked list
+    TradeExecutor head;
+    mapping (address => TradeExecutor) next;
 
     uint256 constant LIQUIDATOR_CAN_RECEIVE     = 0xff00000000000000000000000000000000000000000000000000000000000000;
     uint256 constant LIQUIDATOR_CAN_RECEIVE_INV = 0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
     //function uniswapFactory() internal view returns (UniswapFactory);
     function outputToken() internal view returns (IERC20);
+    function stakeToken() internal view returns (IERC20);
 
     function reclaim(uint256 _debt, address _destination) external {
         require(attributes[_destination] & LIQUIDATOR_CAN_RECEIVE != 0);
-        for (uint256 i = offers.length; i --> 0;) {
-            // XXX
-            (bool success, bytes memory output) = address(offers[i][0]).delegatecall(abi.encodeWithSelector(bytes4(0x61461954))); // execute()
-            if (!success) {
-                continue;
-            }
-            (uint256 inputToken, uint256 inputConsumed, uint256 outputConsumed) = abi.decode(output, (uint256, uint256, uint256));
-        }
+        // TODO
     }
 
     /**
@@ -84,11 +78,13 @@ contract Liquidator {
     function registerAirswap(Order calldata _order) external returns (TradeExecutor orderContract) {
         // TODO require _order.signature.validator is valid
         require(_order.expiry > now + 1 hours);
+        require(_order.sender.kind == ERC20_KIND);
         require(_order.sender.wallet == address(this));
+        require(_order.sender.amount < 0xffffffffffffffffffffffffffffffff);
+        require(_order.sender.token == stakeToken());
         require(_order.signer.kind == ERC20_KIND);
         require(_order.signer.token == outputToken());
-        require(_order.sender.kind == ERC20_KIND);
-        // require(_order.sender.token == stakeToken())
+        require(_order.signer.amount < 0xffffffffffffffffffffffffffffffff);
         uint256 compatibilityID = uint256(_order.nonce) ^ (uint256(_order.signer.wallet) << 96);
         address validator = _order.signature.validator;
         /*
@@ -140,7 +136,29 @@ contract Liquidator {
             calldatacopy(add(start, 92), 4, 736)
             orderContract := create(0, add(start, 21), 796)
         }
-        // TODO insert into orders
+        TradeExecutor prev = TradeExecutor(0);
+        TradeExecutor curr = head;
+        while (curr != TradeExecutor(0)) {
+            Order memory currInfo = airswapOrderInfo(curr);
+            // no need to check overflow because multiplying unsigned values under 16 bytes results in an unsigned value under 32 bytes
+            if (currInfo.signer.amount * _order.sender.amount > currInfo.sender.amount * _order.signer.amount) {
+                next[address(orderContract)] = curr;
+                if (prev == TradeExecutor(0)) {
+                    head = orderContract;
+                } else {
+                    next[address(prev)] = orderContract;
+                }
+                return orderContract;
+            }
+            prev = curr;
+            curr = next[address(curr)];
+        }
+        if (prev == TradeExecutor(0)) {
+            head = orderContract;
+        } else {
+            next[address(prev)] = orderContract;
+        }
+        return orderContract;
     }
 
     function registerIntermediaryUniswap(IERC20 _inputToken, IERC20 _intermediaryToken) external {
@@ -152,32 +170,11 @@ contract Liquidator {
         */
     }
 
-    struct TokenState {
-        IERC20 token;
-        address stakedAsset;
-        uint256 remainingInput;
-        Uniswap directUniswap;
-        uint256 uniswapOutputLiquidity;
-        uint256 uniswapInputLiquidity;
-        uint256 cumulativeOutput;
-    }
     /**
         Remove all orders that would fail
         Remove all orders worse than what is available in uniswap
     */
     function prune() external {
-        uint256 offersLength = offers.length;
-        uint256 tokensLength = tokens.length;
-        TokenState[] memory tokenState = new TokenState[](tokensLength);
- 
-        for (uint256 i = tokensLength; i --> 0;) {
-            tokenState[i].token = tokens[i];
-            tokenState[i].stakedAsset = stakedAssets[i];
-            tokenState[i].remainingInput = tokenState[i].token.balanceOf(stakedAssets[i]);
-            //tokenState[i].directUniswap = uniswapFactory().getExchange(tokenState[i].token, outputToken());
-            tokenState[i].uniswapInputLiquidity = tokenState[i].token.balanceOf(address(tokenState[i].directUniswap));
-            tokenState[i].uniswapOutputLiquidity = outputToken().balanceOf(address(tokenState[i].directUniswap));
-            //(uint256 inputToken, uint256 inputConsumed, uint256 outputConsumed) = offers[i].info();
-        }
+        // TODO
     }
 }

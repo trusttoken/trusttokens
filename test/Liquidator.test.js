@@ -33,7 +33,7 @@ contract('Liquidator', function(accounts) {
         this.types = await Types.new()
         await Airswap.link('Types', this.types.address)
         this.airswap = await Airswap.new(this.transferHandlerRegistry.address, {from: owner})
-        this.liquidator = await Liquidator.new(this.rewardToken.address, {from: owner})
+        this.liquidator = await Liquidator.new(this.rewardToken.address, this.stakeToken.address, {from: owner})
     })
     describe('Airswap', function() {
         let nonce = 0
