@@ -19,7 +19,7 @@ interface UniswapFactory {
 contract Liquidator {
     mapping (address => uint256) attributes;
     /**
-        We STATICCALL into orders to invoke them
+        We DELEGATECALL into orders to invoke them
         orders execute and return some amount or zero
         Invariant: only one offer per compatibilityID
         Invariant: orders are sorted by greatest output amount
@@ -31,7 +31,7 @@ contract Liquidator {
     uint256 constant LIQUIDATOR_CAN_RECEIVE     = 0xff00000000000000000000000000000000000000000000000000000000000000;
     uint256 constant LIQUIDATOR_CAN_RECEIVE_INV = 0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
-    function uniswapFactory() internal view returns (UniswapFactory);
+    //function uniswapFactory() internal view returns (UniswapFactory);
     function outputToken() internal view returns (IERC20);
 
     function reclaim(uint256 _debt, address _destination) external {
@@ -118,7 +118,7 @@ contract Liquidator {
         06  6102E4                                        PUSH2 2E4        0 0 740                                       (inSize)
         09  602F                                          PUSH1 2F         0 0 740 2F                                    (inStart)
         0b  3D                                            RETURNDATASIZE   0 0 740 2F 0                                  wei
-        0c  73xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx    PUSH20 validator 0 0 740 2F 0 validator                        address
+        0c  73xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx    PUSH20 validator 0 0 740 2F 0 validator                        address   (maybe use mload?)
         21  5A                                            GAS              0 0 740 2F 0 validator gas
         22  F1                                            CALL             revert
         23  602A                                          PUSH1 2A         revert goto
@@ -144,10 +144,12 @@ contract Liquidator {
     }
 
     function registerIntermediaryUniswap(IERC20 _inputToken, IERC20 _intermediaryToken) external {
+        /*
         Uniswap uniswap = uniswapFactory().getExchange(_inputToken, _intermediaryToken);
         _inputToken.approve(address(uniswap), 0xff00000000000000000000000000000000000000000000000000000000000000);
         uint256 compatibilityID = uint256(address(_intermediaryToken)) ^ (uint256(address(_inputToken)) << 96);
         // TODO
+        */
     }
 
     struct TokenState {
@@ -172,7 +174,7 @@ contract Liquidator {
             tokenState[i].token = tokens[i];
             tokenState[i].stakedAsset = stakedAssets[i];
             tokenState[i].remainingInput = tokenState[i].token.balanceOf(stakedAssets[i]);
-            tokenState[i].directUniswap = uniswapFactory().getExchange(tokenState[i].token, outputToken());
+            //tokenState[i].directUniswap = uniswapFactory().getExchange(tokenState[i].token, outputToken());
             tokenState[i].uniswapInputLiquidity = tokenState[i].token.balanceOf(address(tokenState[i].directUniswap));
             tokenState[i].uniswapOutputLiquidity = outputToken().balanceOf(address(tokenState[i].directUniswap));
             //(uint256 inputToken, uint256 inputConsumed, uint256 outputConsumed) = offers[i].info();

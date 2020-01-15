@@ -8,6 +8,9 @@ module.exports = {
     solc: {
       version: "0.5.13",
       evmVersion: "istanbul",
+      settings: {
+        evmVersion: "istanbul",
+      },
       optimizer: {
         enabled: true,
         runs: 20000
