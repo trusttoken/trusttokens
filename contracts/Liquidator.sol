@@ -16,6 +16,7 @@ interface UniswapFactory {
     function getExchange(IERC20 input, IERC20 output) external returns (Uniswap);
 }
 
+
 contract Liquidator {
     mapping (address => uint256) attributes;
     /**
@@ -25,8 +26,8 @@ contract Liquidator {
         Invariant: orders are sorted by greatest output amount
     */
     // sorted linked list
-    TradeExecutor head;
-    mapping (address => TradeExecutor) next;
+    TradeExecutor public head;
+    mapping (address => TradeExecutor) public next;
 
     uint256 constant LIQUIDATOR_CAN_RECEIVE     = 0xff00000000000000000000000000000000000000000000000000000000000000;
     uint256 constant LIQUIDATOR_CAN_RECEIVE_INV = 0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
@@ -69,9 +70,34 @@ contract Liquidator {
     }
     bytes4 constant ERC20_KIND = 0x36372b07;
 
-    function airswapOrderInfo(TradeExecutor _airswapOrderContract) public view returns (Order memory order) {
+    struct FlatOrder {
+        uint256 nonce;                // Unique per order and should be sequential
+        uint256 expiry;               // Expiry in seconds since 1 January 1970
+        bytes4 signerKind;                  // Interface ID of the token
+        address signerWallet;               // Wallet address of the party
+        address signerToken;                // Contract address of the token
+        uint256 signerAmount;               // Amount for ERC-20 or ERC-1155
+        uint256 signerId;                   // ID for ERC-721 or ERC-1155
+        bytes4 senderKind;                  // Interface ID of the token
+        address senderWallet;               // Wallet address of the party
+        address senderToken;                // Contract address of the token
+        uint256 senderAmount;               // Amount for ERC-20 or ERC-1155
+        uint256 senderId;                   // ID for ERC-721 or ERC-1155
+        bytes4 affiliateKind;                  // Interface ID of the token
+        address affiliateWallet;               // Wallet address of the party
+        address affiliateToken;                // Contract address of the token
+        uint256 affiliateAmount;               // Amount for ERC-20 or ERC-1155
+        uint256 affiliateId;                   // ID for ERC-721 or ERC-1155
+        address signatory;            // Address of the wallet used to sign
+        address validator;            // Address of the intended swap contract
+        bytes1 version;               // EIP-191 signature version
+        uint8 v;                      // `v` value of an ECDSA signature
+        bytes32 r;                    // `r` value of an ECDSA signature
+        bytes32 s;                    // `s` value of an ECDSA signature
+    }
+    function airswapOrderInfo(TradeExecutor _airswapOrderContract) public view returns (FlatOrder memory order) {
         assembly {
-            extcodecopy(_airswapOrderContract, order, 50, 736)
+            extcodecopy(_airswapOrderContract, order, 51, 736)
         }
     }
 
@@ -96,14 +122,14 @@ contract Liquidator {
             We do not need to worry about other contexts executing this contract because we check that the liquidator is the counterparty and the liquidator will authorize no spenders
             Deploy (10 bytes)
         PC  Opcodes                                       Assembly         Stack
-        00  610312                                        PUSH2 0312       786
-        03  80                                            DUP1             786 786
-        04  600A                                          PUSH1 0A         786 786 10
-        06  3D                                            RETURNDATASIZE   786 786 10 0
-        07  39                                            CODECOPY         786
-        08  3D                                            RETURNDATASIZE   786 0
+        00  610313                                        PUSH2 0313       787
+        03  80                                            DUP1             787 787
+        04  600A                                          PUSH1 0A         787 787 10
+        06  3D                                            RETURNDATASIZE   787 787 10 0
+        07  39                                            CODECOPY         787
+        08  3D                                            RETURNDATASIZE   787 0
         09  F3                                            RETURN
-            Order Contract (786 bytes)
+            Order Contract (787 bytes)
         PC  Opcodes                                       Assembly         Stack                                         Notes
         00  38                                            CODESIZE         cs
         01  3D                                            RETURNDATASIZE   cs 0
@@ -130,18 +156,18 @@ contract Liquidator {
         */
         assembly {
             let start := mload(0x40)
-            mstore(start,             0x00000000000000000000000000000000000000000061031280600A3D393DF338)
+            mstore(start,             0x00000000000000000000000000000000000000000061031380600A3D393DF338)
             mstore(add(start, 32), or(0x3D3D393D3D6102E4602F3D730000000000000000000000000000000000000000, validator))
             mstore(add(start, 64),    0x5AF1602A573D6000F35B3D6000FD67641C2F0000000000000000000000000000)
-            calldatacopy(add(start, 92), 4, 736)
-            orderContract := create(0, add(start, 21), 796)
+            calldatacopy(add(start, 82), 4, 736)
+            orderContract := create(0, add(start, 21), 797)
         }
         TradeExecutor prev = TradeExecutor(0);
         TradeExecutor curr = head;
         while (curr != TradeExecutor(0)) {
-            Order memory currInfo = airswapOrderInfo(curr);
+            FlatOrder memory currInfo = airswapOrderInfo(curr);
             // no need to check overflow because multiplying unsigned values under 16 bytes results in an unsigned value under 32 bytes
-            if (currInfo.signer.amount * _order.sender.amount > currInfo.sender.amount * _order.signer.amount) {
+            if (currInfo.signerAmount * _order.sender.amount > currInfo.senderAmount * _order.signer.amount) {
                 next[address(orderContract)] = curr;
                 if (prev == TradeExecutor(0)) {
                     head = orderContract;

@@ -11,7 +11,8 @@ const Registry = artifacts.require('RegistryMock')
 const { Order } = require('./lib/airswap.js')
 const Types = artifacts.require('Types')
 const ERC20_KIND = '0x36372b07'
-
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000'
 
 contract('Liquidator', function(accounts) {
     const [_, owner, issuer, oneHundred, account1, account2, kycAccount, fakeUniswap, fakePool] = accounts
@@ -40,9 +41,38 @@ contract('Liquidator', function(accounts) {
         let expiry = parseInt(Date.now() / 1000) + 12000
         it('registers a swap', async function() {
             let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED.mul(BN(2)), this.stakeToken.address)
-            nonce += 1
             await order.sign()
             await this.liquidator.registerAirswap(order.web3Tuple)
+            const trade = await this.liquidator.head.call()
+            const next = await this.liquidator.next.call(trade)
+            const orderInfo = await this.liquidator.airswapOrderInfo(trade, { gas: 3000000 })
+            assert(next == ZERO_ADDRESS)
+            assert(orderInfo.nonce == nonce)
+            assert(orderInfo.expiry == expiry)
+            assert(orderInfo.signerKind == ERC20_KIND)
+            assert(orderInfo.signerWallet == oneHundred)
+            assert(orderInfo.signerToken == this.rewardToken.address)
+            assert(orderInfo.signerAmount == ONE_HUNDRED)
+            assert(orderInfo.signerId == 0)
+            assert(orderInfo.senderKind == ERC20_KIND)
+            assert(orderInfo.senderWallet == this.liquidator.address)
+            assert(orderInfo.senderToken == this.stakeToken.address)
+            assert(orderInfo.senderAmount == ONE_HUNDRED.mul(BN(2)))
+            assert(orderInfo.senderId == 0)
+            assert(orderInfo.affiliateKind == ERC20_KIND)
+            assert(orderInfo.affiliateWallet == ZERO_ADDRESS)
+            assert(orderInfo.affiliateToken == ZERO_ADDRESS)
+            assert(orderInfo.affiliateAmount == 0)
+            assert(orderInfo.affiliateId == 0)
+            assert(orderInfo.validator == this.airswap.address)
+            assert(orderInfo.signatory == oneHundred)
+            assert(orderInfo.version == '0x01')
+            assert(['27', '28'].includes(orderInfo.v))
+            assert(orderInfo.r.length == 66)
+            assert(orderInfo.r != ZERO_BYTES32)
+            assert(orderInfo.s.length == 66)
+            assert(orderInfo.s != ZERO_BYTES32)
+            nonce += 1
         })
     })
 })
