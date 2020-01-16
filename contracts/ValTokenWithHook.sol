@@ -22,11 +22,14 @@ contract ValTokenWithHook is IERC20, ModularStandardToken, RegistrySubscriber {
         }
     }
 
-    function _resolveSender(address _from) internal view returns (address from) {
+    modifier resolveSender(address _from) {
         uint256 flags = (attributes[uint144(uint160(_from) >> 20)]);
         require((flags & ACCOUNT_BLACKLISTED) == 0, "blacklisted sender");
-        from = address(flags);
-        require(from == _from, "account collision");
+        address from = address(flags);
+        if (from != address(0)) {
+            require(from == _from, "account collision");
+        }
+        _;
     }
 
     function _transferFromAllArgs(address _from, address _to, uint256 _value, address _spender) internal {
@@ -38,11 +41,11 @@ contract ValTokenWithHook is IERC20, ModularStandardToken, RegistrySubscriber {
         return true;
     }
     function transfer(address _to, uint256 _value) external returns (bool) {
-        _transferAllArgs(_resolveSender(msg.sender), _to, _value);
+        _transferAllArgs(msg.sender, _to, _value);
         return true;
     }
-    function _transferAllArgs(address _from, address _to, uint256 _value) internal {
-        _subBalance(_resolveSender(_from), _value);
+    function _transferAllArgs(address _from, address _to, uint256 _value) internal resolveSender(_from) {
+        _subBalance(_from, _value);
         emit Transfer(_from, _to, _value);
         bool hasHook;
         address to;

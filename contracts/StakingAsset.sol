@@ -50,9 +50,9 @@ contract StakedToken is ValTokenWithHook {
     function rewardAsset() internal view returns (StakingAsset);
     function rewardPool() internal view returns (RewardPool);
 
-    function _transferAllArgs(address _from, address _to, uint256 _value) internal {
+    function _transferAllArgs(address _from, address _to, uint256 _value) internal resolveSender(_from) {
         uint256 priorRewards = claimedRewardsPerStake[msg.sender];
-        uint256 resultBalance = _subBalance(_resolveSender(_from), _value);
+        uint256 resultBalance = _subBalance(_from, _value);
         if (resultBalance == 0) {
             claimedRewardsPerStake[msg.sender] = 0;
         }
