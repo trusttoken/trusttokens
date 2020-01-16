@@ -45,7 +45,7 @@ contract('Liquidator', function(accounts) {
             await this.liquidator.registerAirswap(order.web3Tuple)
             const trade = await this.liquidator.head.call()
             const next = await this.liquidator.next.call(trade)
-            const orderInfo = await this.liquidator.airswapOrderInfo(trade, { gas: 3000000 })
+            const orderInfo = await this.liquidator.airswapOrderInfo.call(trade)
             assert(next == ZERO_ADDRESS)
             assert(orderInfo.nonce == nonce)
             assert(orderInfo.expiry == expiry)
