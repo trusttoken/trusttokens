@@ -7,9 +7,11 @@ import "../Liquidator.sol";
 
 contract LiquidatorMock is Liquidator {
     //UniswapFactory mockUniswapFactory;
+    Registry mockRegistry;
     IERC20 mockOutputToken;
     IERC20 mockStakeToken;
-    constructor(/*UniswapFactory _uniswapFactory,*/ IERC20 _outputToken, IERC20 _stakeToken) public {
+    constructor(Registry _registry, /*UniswapFactory _uniswapFactory,*/ IERC20 _outputToken, IERC20 _stakeToken) public {
+        mockRegistry = _registry;
         //mockUniswapFactory = _uniswapFactory;
         mockOutputToken = _outputToken;
         mockStakeToken = _stakeToken;
@@ -24,5 +26,8 @@ contract LiquidatorMock is Liquidator {
     }
     function stakeToken() internal view returns (IERC20 stakeToken_) {
         stakeToken_ = mockStakeToken;
+    }
+    function registry() internal view returns (Registry registry_) {
+        registry_ = mockRegistry;
     }
 }

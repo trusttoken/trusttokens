@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 
 
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+import "../true-currencies/registry/contracts/Registry.sol";
 
 interface TradeExecutor {
     function info() external view returns (uint256 compatibilityID, uint256 inputToken, uint256 inputAmount, uint256 outputAmount);
@@ -25,20 +26,69 @@ contract Liquidator {
         Invariant: only one offer per compatibilityID
         Invariant: orders are sorted by greatest output amount
     */
-    // sorted linked list
+    // sorted singly-linked list
     TradeExecutor public head;
-    mapping (address => TradeExecutor) public next;
+    mapping (/* TradeExecutor */ address => TradeExecutor) public next;
 
+    bytes32 constant APPROVED_BENEFICIARY = "approvedBeneficiary";
     uint256 constant LIQUIDATOR_CAN_RECEIVE     = 0xff00000000000000000000000000000000000000000000000000000000000000;
     uint256 constant LIQUIDATOR_CAN_RECEIVE_INV = 0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+    bytes32 constant IS_AIRSWAP_VALIDATOR = "isAirswapValidator";
+    uint256 constant AIRSWAP_VALIDATOR     = 0x00ff000000000000000000000000000000000000000000000000000000000000;
+    uint256 constant AIRSWAP_VALIDATOR_INV = 0xff00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
     //function uniswapFactory() internal view returns (UniswapFactory);
     function outputToken() internal view returns (IERC20);
     function stakeToken() internal view returns (IERC20);
+    function registry() internal view returns (Registry);
+    event Liquidated(uint256 stakeAmount, uint256 debtAmount);
+    event Result(uint256 indexed len, bytes result);
+
+    modifier onlyRegistry {
+        require(msg.sender == address(registry()), "only registry");
+        _;
+    }
+
+    function syncAttributeValue(address _account, bytes32 _attribute, uint256 _value) external onlyRegistry {
+        if (_attribute == IS_AIRSWAP_VALIDATOR) {
+            if (_value > 0) {
+                stakeToken().approve(_account, 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff);
+                attributes[_account] |= AIRSWAP_VALIDATOR;
+            } else {
+                stakeToken().approve(_account, 0);
+                attributes[_account] &= AIRSWAP_VALIDATOR_INV;
+            }
+        } else if (_attribute == APPROVED_BENEFICIARY) {
+            if (_value > 0) {
+                attributes[_account] |= LIQUIDATOR_CAN_RECEIVE;
+            } else {
+                attributes[_account] &= LIQUIDATOR_CAN_RECEIVE_INV;
+            }
+        }
+    }
 
     function reclaim(uint256 _debt, address _destination) external {
-        require(attributes[_destination] & LIQUIDATOR_CAN_RECEIVE != 0);
-        // TODO
+        // TODO auth
+        require(attributes[_destination] & LIQUIDATOR_CAN_RECEIVE != 0, "unregistered recipient");
+        // TODO withdraw to liquidator
+        TradeExecutor curr = head;
+        uint256 total = 0;
+        while (curr != TradeExecutor(0)) {
+            FlatOrder memory order = airswapOrderInfo(curr);
+            // TODO check uniswaps
+            if (total + order.signerAmount > _debt) {
+                continue;
+            }
+            (bool success, bytes memory returnValue) = address(curr).delegatecall("");
+            emit Result(returnValue.length, returnValue);
+            if (success) {
+                total += order.signerAmount;
+                emit Liquidated(order.senderAmount, order.signerAmount);
+            }
+            curr = next[address(curr)];
+        }
+        // outputToken().transfer(_destination, total);
+        // TODO return remainder to pool
     }
 
     /**
@@ -103,6 +153,7 @@ contract Liquidator {
 
     function registerAirswap(Order calldata _order) external returns (TradeExecutor orderContract) {
         // TODO require _order.signature.validator is valid
+        require(attributes[_order.signature.validator] & AIRSWAP_VALIDATOR != 0, "unregistered validator");
         require(_order.expiry > now + 1 hours);
         require(_order.sender.kind == ERC20_KIND);
         require(_order.sender.wallet == address(this));
@@ -116,7 +167,7 @@ contract Liquidator {
         /*
             Create an order contract with the bytecode to call the validator with the supplied args
             During execution this liquidator will delegatecall into the order contract
-            The order contract copies its code to memory to mload the calldata and then executes call
+            The order contract copies its code to memory to load the calldata and then executes call
             The order contract returns the data from the validator
             Though the return data is expected to be empty, we will still report whether the contract reverted, by reverting if it reverts
             We do not need to worry about other contexts executing this contract because we check that the liquidator is the counterparty and the liquidator will authorize no spenders
@@ -135,30 +186,30 @@ contract Liquidator {
         01  3D                                            RETURNDATASIZE   cs 0
         02  3D                                            RETURNDATASIZE   cs 0 0
         03  39                                            CODECOPY
-        04  3D                                            RETURNDATASIZE   0                                             (outSize)
+        04  38                                            CODESIZE   0                                             (outSize)
         05  3D                                            RETURNDATASIZE   0 0                                           (outStart)
         06  6102E4                                        PUSH2 2E4        0 0 740                                       (inSize)
         09  602F                                          PUSH1 2F         0 0 740 2F                                    (inStart)
         0b  3D                                            RETURNDATASIZE   0 0 740 2F 0                                  wei
         0c  73xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx    PUSH20 validator 0 0 740 2F 0 validator                        address   (maybe use mload?)
         21  5A                                            GAS              0 0 740 2F 0 validator gas
-        22  F1                                            CALL             revert
-        23  602A                                          PUSH1 2A         revert goto
+        22  F1                                            CALL             success
+        23  602A                                          PUSH1 2A         success goto
         25  57                                            JUMPI
         26  3D                                            RETURNDATASIZE   rds
         27  6000                                          PUSH1 0          rds 0
-        29  F3                                            RETURN
+        29  FD                                            REVERT
         2a  5B                                            JUMPDEST
         2b  3D                                            RETURNDATASIZE   rds
         2c  6000                                          PUSH1 0          rds 0
-        2e  FD                                            REVERT
+        2e  F3                                            RETURN
         2f  67641C2F<>                                    <Order Calldata>                                               size of Order calldata is 740 bytes
         */
         assembly {
             let start := mload(0x40)
             mstore(start,             0x00000000000000000000000000000000000000000061031380600A3D393DF338)
-            mstore(add(start, 32), or(0x3D3D393D3D6102E4602F3D730000000000000000000000000000000000000000, validator))
-            mstore(add(start, 64),    0x5AF1602A573D6000F35B3D6000FD67641C2F0000000000000000000000000000)
+            mstore(add(start, 32), or(0x3D3D39383D6102E4602F3D730000000000000000000000000000000000000000, validator))
+            mstore(add(start, 64),    0x5AF1602A573D6000FD5B3D6000F367641C2F0000000000000000000000000000)
             calldatacopy(add(start, 82), 4, 736)
             orderContract := create(0, add(start, 21), 797)
         }

@@ -13,31 +13,37 @@ function uint256Bytes32(uint256) {
     if (bytes.length < 64) {
         bytes = '0'.repeat(64 - bytes.length) + bytes
     }
+    assert(bytes.length == 64)
     return bytes
 }
 
 function addressBytes32(address) {
-    return BYTES12_ZERO + address.slice(2)
+    let bytes =  BYTES12_ZERO + address.slice(2)
+    assert(bytes.length == 64)
+    return bytes
 }
 
 function hashParty(party) {
-    return web3.utils.sha3(PARTY_TYPEHASH
+    let input = (PARTY_TYPEHASH
         + ERC20_INTERFACE_ID.slice(2) + '0'.repeat(56)
         + addressBytes32(party['wallet'])
         + addressBytes32(party['token'])
         + uint256Bytes32(party['amount'])
         + uint256Bytes32(0)
     )
+    return web3.utils.sha3(input)
 }
 
 function hashOrder(order) {
-    return web3.utils.sha3(ORDER_TYPEHASH
+    let input = (ORDER_TYPEHASH
         + uint256Bytes32(order.nonce)
         + uint256Bytes32(order.expiry)
-        + hashParty(order.signer)
-        + hashParty(order.sender)
-        + hashParty(order.affiliate)
+        + hashParty(order.signer).slice(2)
+        + hashParty(order.sender).slice(2)
+        + hashParty(order.affiliate).slice(2)
     )
+    let result =  web3.utils.sha3(input)
+    return result
 }
 
 function hashDomain(verifyingContract) {
@@ -46,7 +52,8 @@ function hashDomain(verifyingContract) {
         web3.utils.sha3(DOMAIN_VERSION).slice(2) +
         addressBytes32(verifyingContract)
     )
-    return web3.utils.sha3(domain)
+    let result = web3.utils.sha3(domain)
+    return result
 }
 
 function canonicalParty(party) {
@@ -88,7 +95,7 @@ class Order {
         )
     }
     get signingHash() {
-        return web3.utils.sha3(this.signingData        )
+        return web3.utils.sha3(this.signingData)
     }
     async sign() {
         const sig = await web3.eth.sign(this.signingData, this.signer.wallet)
