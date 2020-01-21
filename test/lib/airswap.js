@@ -5,7 +5,8 @@ const PARTY_TYPEHASH = web3.utils.sha3('Party(bytes4 kind,address wallet,address
 const EIP712_DOMAIN_TYPEHASH = web3.utils.sha3('EIP712Domain(string name,string version,address verifyingContract)')
 const DOMAIN_NAME = 'SWAP'
 const DOMAIN_VERSION = '2'
-const SIG191_VERSION = '0x01'
+//const SIG191_VERSION = '0x01'
+const SIG191_VERSION = '0x45'
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 function uint256Bytes32(uint256) {
@@ -66,6 +67,12 @@ function canonicalParty(party) {
     )
 }
 
+const ZERO_PARTY = {
+    wallet: ZERO_ADDRESS,
+    token: ZERO_ADDRESS,
+    amount: 0
+}
+
 
 class Order {
     constructor(nonce, expiry, verifyingContractAddress, makerAddress, makerTokenAmount, makerTokenAddress, takerAddress, takerTokenAmount, takerTokenAddress) {
@@ -82,11 +89,7 @@ class Order {
             amount: takerTokenAmount,
             token: takerTokenAddress,
         }
-        this.affiliate = {
-            wallet: ZERO_ADDRESS,
-            amount: 0,
-            token: ZERO_ADDRESS,
-        }
+        this.affiliate = ZERO_PARTY
     }
     get signingData() {
         return ('0x1901' +
@@ -98,13 +101,24 @@ class Order {
         return web3.utils.sha3(this.signingData)
     }
     async sign() {
-        const sig = await web3.eth.sign(this.signingData, this.signer.wallet)
+        const sig = await web3.eth.sign(this.signingHash, this.signer.wallet)
         this.r = sig.slice(2, 66)
         this.s = sig.slice(66, 130)
+        assert(parseInt(this.s.slice(0,1)) < 8)
         this.v = parseInt(sig.slice(130))
         if (this.v < 27) {
             this.v += 27
         }
+        /*
+        console.log({
+            v: this.v,
+            r: this.r,
+            s: this.s,
+            signingData: this.signingData,
+            signingHash: this.signingHash,
+            wallet: this.signer.wallet
+        })
+        */
         return sig
     }
     get abiV2Bytes() {
