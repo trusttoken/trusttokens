@@ -42,7 +42,6 @@ contract Liquidator {
     function stakeToken() internal view returns (IERC20);
     function registry() internal view returns (Registry);
     event Liquidated(uint256 stakeAmount, uint256 debtAmount);
-    event Result(uint256 indexed len, bytes result);
 
     modifier onlyRegistry {
         require(msg.sender == address(registry()), "only registry");
@@ -80,14 +79,13 @@ contract Liquidator {
                 continue;
             }
             (bool success, bytes memory returnValue) = address(curr).delegatecall("");
-            emit Result(returnValue.length, returnValue);
             if (success) {
                 total += order.signerAmount;
                 emit Liquidated(order.senderAmount, order.signerAmount);
             }
             curr = next[address(curr)];
         }
-        // outputToken().transfer(_destination, total);
+        outputToken().transfer(_destination, total);
         // TODO return remainder to pool
     }
 
