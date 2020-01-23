@@ -7,6 +7,8 @@ const TrueUSD = artifacts.require('TrueUSD')
 const Airswap = artifacts.require('Swap')
 const AirswapERC20TransferHandler = artifacts.require('AirswapERC20TransferHandler')
 const TransferHandlerRegistry = artifacts.require('TransferHandlerRegistry')
+const UniswapFactory = artifacts.require('uniswap_factory')
+const UniswapExchange = artifacts.require('uniswap_exchange')
 const Registry = artifacts.require('RegistryMock')
 const { Order } = require('./lib/airswap.js')
 const Types = artifacts.require('Types')
@@ -18,15 +20,19 @@ const IS_AIRSWAP_VALIDATOR = bytes32('isAirswapValidator')
 const APPROVED_BENEFICIARY = bytes32('approvedBeneficiary')
 
 contract('Liquidator', function(accounts) {
-    const [_, owner, issuer, oneHundred, approvedBeneficiary, account2, kycAccount, fakeUniswap, fakePool] = accounts
+    const [_, owner, issuer, oneHundred, approvedBeneficiary, account2, kycAccount, fakePool] = accounts
     beforeEach(async function() {
+        this.uniswapFactory = await UniswapFactory.new();
+        this.uniswapTemplate = await UniswapExchange.new();
+        this.uniswapFactory.initializeFactory(this.uniswapTemplate.address)
         this.registry = await Registry.new({ from: owner });
         this.rewardToken = await TrueUSD.new({ from: issuer });
         this.stakeToken = await MockTrustToken.new(this.registry.address, { from: issuer });
+        this.outputUniswapAddress = (await this.uniswapFactory.createExchange(this.rewardToken.address)).logs[0].args.exchange
+        this.outputUniswap = await UniswapExchange.at(this.outputUniswapAddress)
+        this.stakeUniswap = await UniswapExchange.at((await this.uniswapFactory.createExchange(this.stakeToken.address)).logs[0].args.exchange)
         await this.rewardToken.setRegistry(this.registry.address, {from: issuer})
-        await this.rewardToken.mint(fakeUniswap, ONE_HUNDRED, {from:issuer});
         await this.rewardToken.mint(oneHundred, ONE_HUNDRED, {from:issuer});
-        await this.stakeToken.mint(fakeUniswap, ONE_HUNDRED, {from:issuer});
         await this.stakeToken.mint(oneHundred, ONE_HUNDRED, {from:issuer});
         //await this.registry.subscribe(PASSED_KYCAML, this.stakeToken.address, {from: owner})
         //await this.registry.setAttributeValue(oneHundred, PASSED_KYCAML, 1, {from: owner})
@@ -36,13 +42,21 @@ contract('Liquidator', function(accounts) {
         this.transferHandlerRegistry.addTransferHandler(ERC20_KIND, this.transferHandler.address,{from:owner})
         this.types = await Types.new()
         await Airswap.link('Types', this.types.address)
+        await this.rewardToken.approve(this.outputUniswap.address, ONE_HUNDRED, {from: oneHundred})
+        await this.stakeToken.approve(this.stakeUniswap.address, ONE_HUNDRED, {from: oneHundred})
+        let expiry = parseInt(Date.now() / 1000) + 12000
+        await this.outputUniswap.addLiquidity(ONE_HUNDRED, ONE_HUNDRED, expiry, {from:oneHundred, value:1e17})
+        await this.stakeUniswap.addLiquidity(ONE_HUNDRED, ONE_HUNDRED, expiry, {from:oneHundred, value:1e17})
+        await this.rewardToken.mint(oneHundred, ONE_HUNDRED, {from:issuer});
+        await this.stakeToken.mint(oneHundred, ONE_HUNDRED, {from:issuer});
         this.airswap = await Airswap.new(this.transferHandlerRegistry.address, {from: owner})
-        this.liquidator = await Liquidator.new(this.registry.address, this.rewardToken.address, this.stakeToken.address, {from: owner})
+        this.liquidator = await Liquidator.new(fakePool, this.registry.address, this.rewardToken.address, this.stakeToken.address, this.outputUniswap.address, this.stakeUniswap.address, {from: owner})
         await this.registry.subscribe(IS_AIRSWAP_VALIDATOR, this.liquidator.address, {from: owner})
         await this.registry.subscribe(APPROVED_BENEFICIARY, this.liquidator.address, {from: owner})
         await this.registry.setAttributeValue(this.airswap.address, IS_AIRSWAP_VALIDATOR, 1, {from: owner})
         await this.registry.setAttributeValue(approvedBeneficiary, APPROVED_BENEFICIARY, 1, {from: owner})
         await this.rewardToken.approve(this.airswap.address, ONE_HUNDRED, {from: oneHundred})
+        await this.stakeToken.approve(this.liquidator.address, ONE_HUNDRED, { from: fakePool })
     })
     describe('Airswap', function() {
         let nonce = 0
@@ -83,7 +97,7 @@ contract('Liquidator', function(accounts) {
             nonce += 1
         })
         it('executes a swap', async function() {
-            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED.div(BN(2)), this.stakeToken.address)
+            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED.div(BN(4)), this.stakeToken.address)
             await order.sign()
             await this.liquidator.registerAirswap(order.web3Tuple)
             const trade = await this.liquidator.head.call()
@@ -100,7 +114,7 @@ contract('Liquidator', function(accounts) {
             assert(orderInfo.senderKind == ERC20_KIND)
             assert(orderInfo.senderWallet == this.liquidator.address)
             assert(orderInfo.senderToken == this.stakeToken.address)
-            assert(orderInfo.senderAmount == ONE_HUNDRED.div(BN(2)))
+            assert(orderInfo.senderAmount == ONE_HUNDRED.div(BN(4)))
             assert(orderInfo.senderId == 0)
             assert(orderInfo.affiliateKind == ERC20_KIND)
             assert(orderInfo.affiliateWallet == ZERO_ADDRESS)
@@ -115,13 +129,15 @@ contract('Liquidator', function(accounts) {
             assert(orderInfo.r != ZERO_BYTES32)
             assert(orderInfo.s.length == 66)
             assert(orderInfo.s != ZERO_BYTES32)
-            await this.stakeToken.transfer(this.liquidator.address, orderInfo.senderAmount, {from: oneHundred})
+            await this.stakeToken.transfer(fakePool, orderInfo.senderAmount, {from: oneHundred})
             await this.stakeToken.transfer(account2, await this.stakeToken.balanceOf(oneHundred), {from: oneHundred})
-            assert.equal(orderInfo.senderAmount, await this.stakeToken.balanceOf(this.liquidator.address))
+            assert.equal(orderInfo.senderAmount, await this.stakeToken.balanceOf(fakePool))
             assert.equal(orderInfo.signerAmount, await this.rewardToken.balanceOf(oneHundred))
             let reclaimed = await this.liquidator.reclaim(orderInfo.signerAmount, approvedBeneficiary)
+            // TODO check reclaim logs
             assert(BN(orderInfo.signerAmount).eq(await this.rewardToken.balanceOf(approvedBeneficiary)))
             assert(BN(orderInfo.senderAmount).eq(await this.stakeToken.balanceOf(oneHundred)))
+            assert(BN(0).eq(await this.stakeToken.balanceOf(fakePool)))
         })
     })
 })

@@ -10,11 +10,16 @@ interface TradeExecutor {
     function info() external view returns (uint256 compatibilityID, uint256 inputToken, uint256 inputAmount, uint256 outputAmount);
     function execute(uint256 maxInput) external returns (uint256 inputToken, uint256 inputConsumed, uint256 outputAmount);
 }
-interface Uniswap {
-    function tokenToTokenSwap(uint256 inputAmount, uint256 maxOutputAmount) external returns (uint256 outputAmount);
+
+
+interface UniswapV1 {
+    function tokenToExchangeSwapInput(uint256 tokensSold, uint256 minTokensBought, uint256 minEthBought, uint256 deadline, UniswapV1 exchangeAddress) external returns (uint256 tokensBought);
+    function tokenToExchangeTransferInput(uint256 tokensSold, uint256 minTokensBought, uint256 minEthBought, uint256 deadline, address recipient, UniswapV1 exchangeAddress) external returns (uint256 tokensBought);
+    function tokenToExchangeSwapOutput(uint256 tokensBought, uint256 maxTokensSold, uint256 maxEthSold, uint256 deadline, UniswapV1 exchangeAddress) external returns (uint256 tokensSold);
+    function tokenToExchangeTransferOutput(uint256 tokensBought, uint256 maxTokensSold, uint256 maxEthSold, uint256 deadline, address recipient, UniswapV1 exchangeAddress) external returns (uint256 tokensSold);
 }
-interface UniswapFactory {
-    function getExchange(IERC20 input, IERC20 output) external returns (Uniswap);
+interface UniswapV1Factory {
+    function getExchange(IERC20 token) external returns (UniswapV1);
 }
 
 
@@ -36,11 +41,16 @@ contract Liquidator {
     bytes32 constant IS_AIRSWAP_VALIDATOR = "isAirswapValidator";
     uint256 constant AIRSWAP_VALIDATOR     = 0x00ff000000000000000000000000000000000000000000000000000000000000;
     uint256 constant AIRSWAP_VALIDATOR_INV = 0xff00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
-
-    //function uniswapFactory() internal view returns (UniswapFactory);
+    uint256 constant MAX_UINT = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+    uint256 constant MAX_UINT128 = 0xffffffffffffffffffffffffffffffff;
     function outputToken() internal view returns (IERC20);
     function stakeToken() internal view returns (IERC20);
+    function outputUniswapV1() internal view returns (UniswapV1);
+    function stakeUniswapV1() internal view returns (UniswapV1);
     function registry() internal view returns (Registry);
+    function pool() internal view returns (address);
+
+    event LimitOrder(TradeExecutor order);
     event Liquidated(uint256 stakeAmount, uint256 debtAmount);
 
     modifier onlyRegistry {
@@ -66,27 +76,93 @@ contract Liquidator {
         }
     }
 
-    function reclaim(uint256 _debt, address _destination) external {
+    struct UniswapState {
+        UniswapV1 uniswap;
+        uint256 etherBalance;
+        uint256 tokenBalance;
+    }
+
+    // See ./uniswap/uniswap_exchabge.vy
+    function outputForUniswapV1Input(uint256 stakeInputAmount, UniswapState memory outputUniswapV1State, UniswapState memory stakeUniswapV1State) internal pure returns (uint256 outputAmount) {
+        uint256 inputAmountWithFee = 997 * stakeInputAmount;
+        inputAmountWithFee = 997 * (inputAmountWithFee * stakeUniswapV1State.etherBalance) / (stakeUniswapV1State.tokenBalance * 1000 + inputAmountWithFee);
+        outputAmount = (inputAmountWithFee * outputUniswapV1State.tokenBalance) / (outputUniswapV1State.etherBalance * 1000 + inputAmountWithFee);
+    }
+
+    // See ./uniswap/uniswap_exchabge.vy
+    function inputForUniswapV1Output(uint256 outputAmount, UniswapState memory outputUniswapV1State, UniswapState memory stakeUniswapV1State) internal pure returns (uint256 inputAmount) {
+        if (outputAmount >= outputUniswapV1State.tokenBalance) {
+            return MAX_UINT128;
+        }
+        uint256 ethNeeded = (outputUniswapV1State.etherBalance * outputAmount * 1000) / (997 * (outputUniswapV1State.tokenBalance - outputAmount)) + 1;
+        if (ethNeeded >= stakeUniswapV1State.etherBalance) {
+            return MAX_UINT128;
+        }
+        inputAmount = (stakeUniswapV1State.tokenBalance * ethNeeded * 1000) / (997 * (stakeUniswapV1State.etherBalance - ethNeeded)) + 1;
+    }
+
+    event Log(int256 indexed remainingDebt, uint256 indexed remainingStake, uint256 indexed uniswapOutput);
+    function reclaim(int256 _debt, address _destination) external {
+        require(_debt > 0, "Must reclaim positive amount");
+        require(_debt < int256(MAX_UINT128), "Must reclaim positive amount");
         // TODO auth
         require(attributes[_destination] & LIQUIDATOR_CAN_RECEIVE != 0, "unregistered recipient");
-        // TODO withdraw to liquidator
+        address stakePool = pool();
         TradeExecutor curr = head;
-        uint256 total = 0;
+        uint256 remainingStake = stakeToken().balanceOf(stakePool);
+        // withdraw to liquidator
+        require(stakeToken().transferFrom(stakePool, address(this), remainingStake), "unapproved");
+
+        UniswapState memory outputUniswapV1State;
+        UniswapState memory stakeUniswapV1State;
+        outputUniswapV1State.uniswap = outputUniswapV1();
+        outputUniswapV1State.etherBalance = address(outputUniswapV1State.uniswap).balance;
+        outputUniswapV1State.tokenBalance = outputToken().balanceOf(address(outputUniswapV1State.uniswap));
+        stakeUniswapV1State.uniswap = stakeUniswapV1();
+        stakeUniswapV1State.etherBalance = address(stakeUniswapV1State.uniswap).balance;
+        stakeUniswapV1State.tokenBalance = stakeToken().balanceOf(address(stakeUniswapV1State.uniswap));
+        int256 remainingDebt = _debt;
         while (curr != TradeExecutor(0)) {
             FlatOrder memory order = airswapOrderInfo(curr);
-            // TODO check uniswaps
-            if (total + order.signerAmount > _debt) {
-                continue;
-            }
-            (bool success, bytes memory returnValue) = address(curr).delegatecall("");
-            if (success) {
-                total += order.signerAmount;
-                emit Liquidated(order.senderAmount, order.signerAmount);
+            if (order.senderAmount <= remainingStake) {
+                if (inputForUniswapV1Output(uint256(remainingDebt), outputUniswapV1State, stakeUniswapV1State) * order.signerAmount < order.senderAmount * uint256(remainingDebt)) {
+                    // remaining orders are not as good as uniswap
+                    break;
+                }
+                (bool success, bytes memory returnValue) = address(curr).delegatecall("");
+                if (success) {
+                    remainingDebt -= int256(order.signerAmount);
+                    remainingStake -= order.senderAmount; // underflow not possible because airswap tranfer succeeded
+                    emit Liquidated(order.senderAmount, order.signerAmount);
+                    if (remainingDebt <= 0) {
+                        break;
+                    }
+                }
             }
             curr = next[address(curr)];
         }
-        outputToken().transfer(_destination, total);
-        // TODO return remainder to pool
+        emit Log(remainingDebt, remainingStake, outputForUniswapV1Input(remainingStake, outputUniswapV1State, stakeUniswapV1State));
+        if (remainingDebt > 0) {
+            if (outputForUniswapV1Input(remainingStake, outputUniswapV1State, stakeUniswapV1State) < uint256(remainingDebt)) {
+                // liquidate all stake :(
+                uint256 outputAmount = stakeUniswapV1State.uniswap.tokenToExchangeSwapInput(remainingStake, 1, 1, block.timestamp, outputUniswapV1State.uniswap);
+                outputToken().transfer(_destination, outputAmount + uint256(_debt - remainingDebt));
+            } else {
+                // complete liquidation via uniswap
+                stakeUniswapV1State.uniswap.tokenToExchangeSwapOutput(uint256(remainingDebt), remainingStake, MAX_UINT, block.timestamp, outputUniswapV1State.uniswap);
+                outputToken().transfer(_destination, uint256(_debt));
+            }
+        } else {
+            if (remainingDebt < 0) {
+                // pay out stake liquidation value
+                outputToken().transfer(stakePool, uint256(-remainingDebt));
+            }
+            outputToken().transfer(_destination, uint256(_debt));
+        }
+        if (remainingStake > 0) {
+            // return remainder stake to pool
+            stakeToken().transfer(stakePool, remainingStake);
+        }
     }
 
     /**
@@ -155,11 +231,11 @@ contract Liquidator {
         require(_order.expiry > now + 1 hours);
         require(_order.sender.kind == ERC20_KIND);
         require(_order.sender.wallet == address(this));
-        require(_order.sender.amount < 0xffffffffffffffffffffffffffffffff);
+        require(_order.sender.amount < MAX_UINT128);
         require(_order.sender.token == stakeToken());
         require(_order.signer.kind == ERC20_KIND);
         require(_order.signer.token == outputToken());
-        require(_order.signer.amount < 0xffffffffffffffffffffffffffffffff);
+        require(_order.signer.amount < MAX_UINT128);
         uint256 compatibilityID = uint256(_order.nonce) ^ (uint256(_order.signer.wallet) << 96);
         address validator = _order.signature.validator;
         /*
@@ -233,16 +309,8 @@ contract Liquidator {
         } else {
             next[address(prev)] = orderContract;
         }
+        emit LimitOrder(orderContract);
         return orderContract;
-    }
-
-    function registerIntermediaryUniswap(IERC20 _inputToken, IERC20 _intermediaryToken) external {
-        /*
-        Uniswap uniswap = uniswapFactory().getExchange(_inputToken, _intermediaryToken);
-        _inputToken.approve(address(uniswap), 0xff00000000000000000000000000000000000000000000000000000000000000);
-        uint256 compatibilityID = uint256(address(_intermediaryToken)) ^ (uint256(address(_inputToken)) << 96);
-        // TODO
-        */
     }
 
     /**
