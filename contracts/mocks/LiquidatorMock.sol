@@ -21,6 +21,7 @@ contract LiquidatorMock is Liquidator {
         mockStakeToken = _stakeToken;
         mockOutputUniswap = _outputUniswap;
         mockStakeUniswap = _stakeUniswap;
+        initialize();
     }
     /*
     function uniswapFactory() internal view returns (UniswapFactory uniswapFactory_) {

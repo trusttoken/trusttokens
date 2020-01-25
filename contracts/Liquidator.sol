@@ -50,6 +50,11 @@ contract Liquidator {
     function registry() internal view returns (Registry);
     function pool() internal view returns (address);
 
+    function initialize() internal {
+        outputToken().approve(address(outputUniswapV1()), MAX_UINT);
+        stakeToken().approve(address(stakeUniswapV1()), MAX_UINT);
+    }
+
     event LimitOrder(TradeExecutor order);
     event Liquidated(uint256 stakeAmount, uint256 debtAmount);
 
@@ -83,7 +88,7 @@ contract Liquidator {
     }
 
     // See ./uniswap/uniswap_exchabge.vy
-    function outputForUniswapV1Input(uint256 stakeInputAmount, UniswapState memory outputUniswapV1State, UniswapState memory stakeUniswapV1State) internal pure returns (uint256 outputAmount) {
+    function outputForUniswapV1Input(uint256 stakeInputAmount, UniswapState memory outputUniswapV1State, UniswapState memory stakeUniswapV1State) internal /*pure*/ returns (uint256 outputAmount) {
         uint256 inputAmountWithFee = 997 * stakeInputAmount;
         inputAmountWithFee = 997 * (inputAmountWithFee * stakeUniswapV1State.etherBalance) / (stakeUniswapV1State.tokenBalance * 1000 + inputAmountWithFee);
         outputAmount = (inputAmountWithFee * outputUniswapV1State.tokenBalance) / (outputUniswapV1State.etherBalance * 1000 + inputAmountWithFee);
@@ -101,14 +106,12 @@ contract Liquidator {
         inputAmount = (stakeUniswapV1State.tokenBalance * ethNeeded * 1000) / (997 * (stakeUniswapV1State.etherBalance - ethNeeded)) + 1;
     }
 
-    event Log(int256 indexed remainingDebt, uint256 indexed remainingStake, uint256 indexed uniswapOutput);
     function reclaim(int256 _debt, address _destination) external {
         require(_debt > 0, "Must reclaim positive amount");
         require(_debt < int256(MAX_UINT128), "Must reclaim positive amount");
         // TODO auth
         require(attributes[_destination] & LIQUIDATOR_CAN_RECEIVE != 0, "unregistered recipient");
         address stakePool = pool();
-        TradeExecutor curr = head;
         uint256 remainingStake = stakeToken().balanceOf(stakePool);
         // withdraw to liquidator
         require(stakeToken().transferFrom(stakePool, address(this), remainingStake), "unapproved");
@@ -122,6 +125,7 @@ contract Liquidator {
         stakeUniswapV1State.etherBalance = address(stakeUniswapV1State.uniswap).balance;
         stakeUniswapV1State.tokenBalance = stakeToken().balanceOf(address(stakeUniswapV1State.uniswap));
         int256 remainingDebt = _debt;
+        TradeExecutor curr = head;
         while (curr != TradeExecutor(0)) {
             FlatOrder memory order = airswapOrderInfo(curr);
             if (order.senderAmount <= remainingStake) {
@@ -141,15 +145,21 @@ contract Liquidator {
             }
             curr = next[address(curr)];
         }
-        emit Log(remainingDebt, remainingStake, outputForUniswapV1Input(remainingStake, outputUniswapV1State, stakeUniswapV1State));
+        // TODO what if remainingStake == 0?
         if (remainingDebt > 0) {
             if (outputForUniswapV1Input(remainingStake, outputUniswapV1State, stakeUniswapV1State) < uint256(remainingDebt)) {
                 // liquidate all stake :(
                 uint256 outputAmount = stakeUniswapV1State.uniswap.tokenToExchangeSwapInput(remainingStake, 1, 1, block.timestamp, outputUniswapV1State.uniswap);
-                outputToken().transfer(_destination, outputAmount + uint256(_debt - remainingDebt));
+                emit Liquidated(remainingStake, outputAmount);
+                remainingDebt -= int256(outputAmount);
+                remainingStake = 0;
+                outputToken().transfer(_destination, uint256(_debt - remainingDebt));
             } else {
-                // complete liquidation via uniswap
-                stakeUniswapV1State.uniswap.tokenToExchangeSwapOutput(uint256(remainingDebt), remainingStake, MAX_UINT, block.timestamp, outputUniswapV1State.uniswap);
+                // finish liquidation via uniswap
+                uint256 stakeSold = stakeUniswapV1State.uniswap.tokenToExchangeSwapOutput(uint256(remainingDebt), remainingStake, MAX_UINT, block.timestamp, outputUniswapV1State.uniswap);
+                emit Liquidated(stakeSold, uint256(remainingDebt));
+                remainingDebt = 0;
+                remainingStake -= stakeSold;
                 outputToken().transfer(_destination, uint256(_debt));
             }
         } else {

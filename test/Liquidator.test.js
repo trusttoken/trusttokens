@@ -140,4 +140,22 @@ contract('Liquidator', function(accounts) {
             assert(BN(0).eq(await this.stakeToken.balanceOf(fakePool)))
         })
     })
+    describe('UniswapV1', function() {
+        it('Liquidates all stake', async function() {
+            await this.stakeToken.transfer(fakePool, ONE_HUNDRED, {from: oneHundred})
+            let reclaimed = await this.liquidator.reclaim(ONE_HUNDRED, approvedBeneficiary)
+            assert.equal(reclaimed.logs.length, 1, "only one liquidation")
+            assert(reclaimed.logs[0].args.stakeAmount.eq(ONE_HUNDRED), "all stake liquidated")
+            assert(reclaimed.logs[0].args.debtAmount.eq(BN("33233233333634234806")), "maximum debt")
+        })
+        it('Liquidates most stake', async function() {
+            await this.stakeToken.transfer(fakePool, ONE_HUNDRED, {from: oneHundred})
+            const debt = BN("33233233333634234806")
+            const expectedStakeLiquidated = BN("0x56bc75e2d630ff468")
+            let reclaimed = await this.liquidator.reclaim(debt, approvedBeneficiary)
+            assert.equal(reclaimed.logs.length, 1, "only one liquidation")
+            assert(reclaimed.logs[0].args.debtAmount.eq(debt), "debt filled")
+            assert(reclaimed.logs[0].args.stakeAmount.eq(expectedStakeLiquidated), "stake liquidated")
+        })
+    })
 })
