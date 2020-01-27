@@ -61,6 +61,8 @@ contract Liquidator {
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     event LimitOrder(TradeExecutor indexed order);
+    event Fill(TradeExecutor indexed order);
+    event Cancel(TradeExecutor indexed order);
     event Liquidated(uint256 indexed stakeAmount, uint256 indexed debtAmount);
     event LiquidationError(TradeExecutor indexed order, bytes error);
 
@@ -153,6 +155,7 @@ contract Liquidator {
                 }
                 (bool success, bytes memory returnValue) = address(curr).delegatecall("");
                 if (success) {
+                    emit Fill(curr);
                     remainingDebt -= int256(order.signerAmount);
                     remainingStake -= order.senderAmount; // underflow not possible because airswap tranfer succeeded
                     emit Liquidated(order.senderAmount, order.signerAmount);
@@ -160,11 +163,16 @@ contract Liquidator {
                         break;
                     }
                 } else {
+                    emit Cancel(curr);
                     emit LiquidationError(curr, returnValue);
                 }
+            } else {
+                emit Cancel(curr);
             }
             curr = next[address(curr)];
+            next[address(curr)] = TradeExecutor(0);
         }
+        head = curr;
         if (remainingDebt > 0) {
             if (remainingStake > 0) {
                 if (outputForUniswapV1Input(remainingStake, outputUniswapV1State, stakeUniswapV1State) < uint256(remainingDebt)) {

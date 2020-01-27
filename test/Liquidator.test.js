@@ -65,6 +65,9 @@ contract('Liquidator', function(accounts) {
         it('prevents non-approved beneficiary', async function() {
             await assertRevert(this.liquidator.reclaim(ONE_HUNDRED, account2, {from:owner}))
         })
+        it('prevents liquidation of zero', async function() {
+            await assertRevert(this.liquidator.reclaim(BN(0), approvedBeneficiary, {from:owner}))
+        })
     })
     describe('Airswap', function() {
         let nonce = 0
@@ -72,8 +75,11 @@ contract('Liquidator', function(accounts) {
         it('registers a swap', async function() {
             let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED.mul(BN(2)), this.stakeToken.address)
             await order.sign()
-            await this.liquidator.registerAirswap(order.web3Tuple)
+            const registered = await this.liquidator.registerAirswap(order.web3Tuple)
+            assert(registered.logs.length == 1)
+            assert(registered.logs[0].event == "LimitOrder")
             const trade = await this.liquidator.head.call()
+            assert.equal(registered.logs[0].args.order, trade)
             const next = await this.liquidator.next.call(trade)
             const orderInfo = await this.liquidator.airswapOrderInfo.call(trade)
             assert(next == ZERO_ADDRESS)
@@ -142,14 +148,38 @@ contract('Liquidator', function(accounts) {
             assert.equal(orderInfo.senderAmount, await this.stakeToken.balanceOf(fakePool))
             assert.equal(orderInfo.signerAmount, await this.rewardToken.balanceOf(oneHundred))
             let reclaimed = await this.liquidator.reclaim(orderInfo.signerAmount, approvedBeneficiary, {from:owner})
-            assert.equal(reclaimed.logs.length, 1, "only one liquidation")
-            let liquidationEvent = reclaimed.logs[0]
+            assert.equal(reclaimed.logs.length, 2, "Fill and Liquidated")
+            let fillEvent = reclaimed.logs[0]
+            assert.equal(fillEvent.event, "Fill")
+            assert.equal(fillEvent.args.order, trade)
+            let liquidationEvent = reclaimed.logs[1]
             assert.equal(liquidationEvent.event, "Liquidated")
             assert.equal(orderInfo.signerAmount,liquidationEvent.args.debtAmount, "stake amount mismatch")
             assert.equal(orderInfo.senderAmount,liquidationEvent.args.stakeAmount, "stake amount mismatch")
             assert(BN(orderInfo.signerAmount).eq(await this.rewardToken.balanceOf(approvedBeneficiary)))
             assert(BN(orderInfo.senderAmount).eq(await this.stakeToken.balanceOf(oneHundred)))
             assert(BN(0).eq(await this.stakeToken.balanceOf(fakePool)))
+        })
+        it('tolerates swap failure', async function() {
+            await this.stakeToken.transfer(fakePool, ONE_HUNDRED, {from: oneHundred})
+            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED, this.stakeToken.address)
+            await order.sign()
+            const registration = await this.liquidator.registerAirswap(order.web3Tuple)
+            assert.equal(1, registration.logs.length)
+            assert.equal(registration.logs[0].event, "LimitOrder")
+            const trade = await this.liquidator.head.call()
+            assert.equal(registration.logs[0].args.order, trade)
+            await this.rewardToken.transfer(account2, ONE_HUNDRED, {from:oneHundred})
+            const reclaimed = await this.liquidator.reclaim(ONE_HUNDRED, approvedBeneficiary, {from:owner})
+            assert.equal(3, reclaimed.logs.length, "Cancel, LiquidationError, and Liquidated")
+            let cancelEvent = reclaimed.logs[0]
+            assert.equal(cancelEvent.event, "Cancel")
+            assert.equal(cancelEvent.args.order, trade)
+            let errorEvent = reclaimed.logs[1]
+            assert.equal(errorEvent.event, "LiquidationError")
+            assert.equal(errorEvent.args.order, trade)
+            let liquidationEvent = reclaimed.logs[2]
+            assert.equal(liquidationEvent.event, "Liquidated")
         })
     })
     describe('UniswapV1', function() {
