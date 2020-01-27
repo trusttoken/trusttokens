@@ -142,6 +142,7 @@ contract('Liquidator', function(accounts) {
             assert.equal(orderInfo.senderAmount, await this.stakeToken.balanceOf(fakePool))
             assert.equal(orderInfo.signerAmount, await this.rewardToken.balanceOf(oneHundred))
             let reclaimed = await this.liquidator.reclaim(orderInfo.signerAmount, approvedBeneficiary, {from:owner})
+            assert.equal(reclaimed.logs.length, 1, "only one liquidation")
             let liquidationEvent = reclaimed.logs[0]
             assert.equal(liquidationEvent.event, "Liquidated")
             assert.equal(orderInfo.signerAmount,liquidationEvent.args.debtAmount, "stake amount mismatch")
@@ -156,6 +157,7 @@ contract('Liquidator', function(accounts) {
             await this.stakeToken.transfer(fakePool, ONE_HUNDRED, {from: oneHundred})
             let reclaimed = await this.liquidator.reclaim(ONE_HUNDRED, approvedBeneficiary, {from:owner})
             assert.equal(reclaimed.logs.length, 1, "only one liquidation")
+            assert.equal(reclaimed.logs[0].event, "Liquidated")
             assert(reclaimed.logs[0].args.stakeAmount.eq(ONE_HUNDRED), "all stake liquidated")
             assert(reclaimed.logs[0].args.debtAmount.eq(BN("33233233333634234806")), "maximum debt")
         })
@@ -165,6 +167,7 @@ contract('Liquidator', function(accounts) {
             const expectedStakeLiquidated = BN("0x56bc75e2d630ff468")
             let reclaimed = await this.liquidator.reclaim(debt, approvedBeneficiary, {from:owner})
             assert.equal(reclaimed.logs.length, 1, "only one liquidation")
+            assert.equal(reclaimed.logs[0].event, "Liquidated")
             assert(reclaimed.logs[0].args.debtAmount.eq(debt), "debt filled")
             assert(reclaimed.logs[0].args.stakeAmount.eq(expectedStakeLiquidated), "stake liquidated")
         })
