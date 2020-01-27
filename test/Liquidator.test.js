@@ -142,7 +142,10 @@ contract('Liquidator', function(accounts) {
             assert.equal(orderInfo.senderAmount, await this.stakeToken.balanceOf(fakePool))
             assert.equal(orderInfo.signerAmount, await this.rewardToken.balanceOf(oneHundred))
             let reclaimed = await this.liquidator.reclaim(orderInfo.signerAmount, approvedBeneficiary, {from:owner})
-            // TODO check reclaim logs
+            let liquidationEvent = reclaimed.logs[0]
+            assert.equal(liquidationEvent.event, "Liquidated")
+            assert.equal(orderInfo.signerAmount,liquidationEvent.args.debtAmount, "stake amount mismatch")
+            assert.equal(orderInfo.senderAmount,liquidationEvent.args.stakeAmount, "stake amount mismatch")
             assert(BN(orderInfo.signerAmount).eq(await this.rewardToken.balanceOf(approvedBeneficiary)))
             assert(BN(orderInfo.senderAmount).eq(await this.stakeToken.balanceOf(oneHundred)))
             assert(BN(0).eq(await this.stakeToken.balanceOf(fakePool)))
