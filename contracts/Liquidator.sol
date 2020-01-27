@@ -7,8 +7,6 @@ import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "../true-currencies/registry/contracts/Registry.sol";
 
 interface TradeExecutor {
-    function info() external view returns (uint256 compatibilityID, uint256 inputToken, uint256 inputAmount, uint256 outputAmount);
-    function execute(uint256 maxInput) external returns (uint256 inputToken, uint256 inputConsumed, uint256 outputAmount);
 }
 
 
@@ -30,7 +28,6 @@ contract Liquidator {
     /**
         We DELEGATECALL into orders to invoke them
         orders execute and return some amount or zero
-        Invariant: only one offer per compatibilityID
         Invariant: orders are sorted by greatest output amount
     */
     // sorted singly-linked list
@@ -63,8 +60,9 @@ contract Liquidator {
     }
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-    event LimitOrder(TradeExecutor order);
-    event Liquidated(uint256 stakeAmount, uint256 debtAmount);
+    event LimitOrder(TradeExecutor indexed order);
+    event Liquidated(uint256 indexed stakeAmount, uint256 indexed debtAmount);
+    event LiquidationError(TradeExecutor indexed order, bytes error);
 
     modifier onlyRegistry {
         require(msg.sender == address(registry()), "only registry");
@@ -161,6 +159,8 @@ contract Liquidator {
                     if (remainingDebt <= 0) {
                         break;
                     }
+                } else {
+                    emit LiquidationError(curr, returnValue);
                 }
             }
             curr = next[address(curr)];
@@ -259,15 +259,16 @@ contract Liquidator {
     function registerAirswap(Order calldata _order) external returns (TradeExecutor orderContract) {
         // TODO require _order.signature.validator is valid
         require(attributes[_order.signature.validator] & AIRSWAP_VALIDATOR != 0, "unregistered validator");
-        require(_order.expiry > now + 1 hours);
-        require(_order.sender.kind == ERC20_KIND);
-        require(_order.sender.wallet == address(this));
-        require(_order.sender.amount < MAX_UINT128);
-        require(_order.sender.token == stakeToken());
-        require(_order.signer.kind == ERC20_KIND);
-        require(_order.signer.token == outputToken());
-        require(_order.signer.amount < MAX_UINT128);
-        uint256 compatibilityID = uint256(_order.nonce) ^ (uint256(_order.signer.wallet) << 96);
+        require(_order.expiry > now + 1 hours, "expiry too soon");
+        require(_order.sender.kind == ERC20_KIND, "erc20");
+        require(_order.sender.wallet == address(this), "counterparty must be liquidator");
+        require(_order.sender.amount < MAX_UINT128, "ask too large");
+        require(_order.sender.token == stakeToken(), "must buy stake");
+        require(_order.signer.kind == ERC20_KIND, "erc20");
+        require(_order.signer.token == outputToken(), "incorrect token offerred");
+        require(_order.signer.amount < MAX_UINT128, "bid too large");
+        require(_order.affiliate.amount == 0, "affiliate amount must be zero");
+        require(_order.affiliate.wallet == address(0), "affiliate wallet must be zero");
         address validator = _order.signature.validator;
         /*
             Create an order contract with the bytecode to call the validator with the supplied args
