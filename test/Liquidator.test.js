@@ -82,6 +82,20 @@ contract('Liquidator', function(accounts) {
             await order.sign()
             await assertRevert(this.liquidator.registerAirswap(order.web3Tuple))
         })
+        it('prevents used nonces', async function() {
+            await this.stakeToken.transfer(fakePool, ONE_HUNDRED, {from: oneHundred})
+            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED, this.stakeToken.address)
+            await order.sign()
+            await this.airswap.cancel([nonce], {from:oneHundred})
+            await assertRevert(this.liquidator.registerAirswap(order.web3Tuple))
+        })
+        it('enforces nonce minimum', async function() {
+            await this.stakeToken.transfer(fakePool, ONE_HUNDRED, {from: oneHundred})
+            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED, this.stakeToken.address)
+            await order.sign()
+            await this.airswap.cancelUpTo(nonce + 1, {from:oneHundred})
+            await assertRevert(this.liquidator.registerAirswap(order.web3Tuple))
+        })
     })
     describe('Airswap', function() {
         let nonce = 0

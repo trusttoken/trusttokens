@@ -45,6 +45,7 @@ contract Liquidator {
     uint256 constant AIRSWAP_VALIDATOR_INV = 0xff00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
     uint256 constant MAX_UINT = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
     uint256 constant MAX_UINT128 = 0xffffffffffffffffffffffffffffffff;
+    bytes1 constant AIRSWAP_AVAILABLE = bytes1(0x0);
     function outputToken() internal view returns (IERC20);
     function stakeToken() internal view returns (IERC20);
     function outputUniswapV1() internal view returns (UniswapV1);
@@ -275,7 +276,6 @@ contract Liquidator {
     }
 
     function registerAirswap(Order calldata _order) external returns (TradeExecutor orderContract) {
-        // TODO require _order.signature.validator is valid
         require(attributes[_order.signature.validator] & AIRSWAP_VALIDATOR != 0, "unregistered validator");
         require(_order.expiry > now + 1 hours, "expiry too soon");
         require(_order.sender.kind == ERC20_KIND, "erc20");
@@ -294,7 +294,9 @@ contract Liquidator {
         // verify senderAmount / poolBalance > swapGasCost / blockGasLimit
         require(_order.sender.amount.mul(block.gaslimit, "senderAmount overflow") > poolBalance.mul(SWAP_GAS_COST, "poolBalance overflow"), "order too small");
         // TODO check sig
-        address validator = _order.signature.validator;
+        Swap validator = Swap(_order.signature.validator);
+        require(validator.signerMinimumNonce(_order.signer.wallet) <= _order.nonce, "signer minimum nonce is higher");
+        require(validator.signerNonceStatus(_order.signer.wallet, _order.nonce) == AIRSWAP_AVAILABLE, "signer nonce unavailable");
         /*
             Create an order contract with the bytecode to call the validator with the supplied args
             During execution this liquidator will delegatecall into the order contract
@@ -366,12 +368,11 @@ contract Liquidator {
         return orderContract;
     }
 
-    bytes1 constant AIRSWAP_AVAILABLE = bytes1(0x0);
     /**
         If the order cannot be executed at this moment, it is prunable
         No need to check things immutably true that were checked during registration
     */
-    function prunableOrder(FlatOrder memory _order) internal /*view*/ returns (bool) {
+    function prunableOrder(FlatOrder memory _order) internal view returns (bool) {
         if (_order.expiry < now) {
             return true;
         }
