@@ -59,6 +59,8 @@ contract('Liquidator', function(accounts) {
         await this.stakeToken.approve(this.liquidator.address, ONE_HUNDRED, { from: fakePool })
     })
     describe('Auth', function() {
+        let nonce = 0
+        let expiry = parseInt(Date.now() / 1000) + 12000
         it('prevents non-owner from reclaiming', async function() {
             await assertRevert(this.liquidator.reclaim(ONE_HUNDRED, approvedBeneficiary), {from:account2})
         })
@@ -69,10 +71,14 @@ contract('Liquidator', function(accounts) {
             await assertRevert(this.liquidator.reclaim(BN(0), approvedBeneficiary, {from:owner}))
         })
         it('prevents registering orders with non-airswap validator', async function() {
-            let nonce = 0
-            let expiry = parseInt(Date.now() / 1000) + 12000
             await this.stakeToken.transfer(fakePool, BN(100), {from: oneHundred})
             let order = new Order(nonce, expiry, this.liquidator.address, oneHundred, ONE_HUNDRED, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED, this.stakeToken.address)
+            await order.sign()
+            await assertRevert(this.liquidator.registerAirswap(order.web3Tuple))
+        })
+        it('prevents tiny orders', async function() {
+            await this.stakeToken.transfer(fakePool, ONE_HUNDRED, {from: oneHundred})
+            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED, this.rewardToken.address, this.liquidator.address, BN(1), this.stakeToken.address)
             await order.sign()
             await assertRevert(this.liquidator.registerAirswap(order.web3Tuple))
         })
@@ -227,7 +233,7 @@ contract('Liquidator', function(accounts) {
             assert.equal(head, ZERO_ADDRESS)
         })
         it('prunes: keep, drop, keep', async function() {
-            await this.stakeToken.transfer(fakePool, ONE_HUNDRED, {from: oneHundred})
+            await this.stakeToken.transfer(fakePool, BN(6), {from: oneHundred})
             await this.rewardToken.transfer(account2, BN(10), {from: oneHundred})
             await this.rewardToken.approve(this.airswap.address, BN(10), {from:account2})
             let order3 = new Order(nonce, expiry, this.airswap.address, oneHundred, BN(3), this.rewardToken.address, this.liquidator.address, BN(1), this.stakeToken.address)
@@ -267,7 +273,7 @@ contract('Liquidator', function(accounts) {
             assert.equal(await this.liquidator.next.call(trade1), ZERO_ADDRESS)
         })
         it('prunes: drop, keep, keep', async function() {
-            await this.stakeToken.transfer(fakePool, ONE_HUNDRED, {from: oneHundred})
+            await this.stakeToken.transfer(fakePool, BN(6), {from: oneHundred})
             await this.rewardToken.transfer(account2, BN(10), {from: oneHundred})
             await this.rewardToken.approve(this.airswap.address, BN(10), {from:account2})
             let order3 = new Order(nonce, expiry, this.airswap.address, account2, BN(3), this.rewardToken.address, this.liquidator.address, BN(1), this.stakeToken.address)
@@ -307,7 +313,7 @@ contract('Liquidator', function(accounts) {
             assert.equal(await this.liquidator.next.call(trade1), ZERO_ADDRESS)
         })
         it('prunes: keep, drop, drop', async function() {
-            await this.stakeToken.transfer(fakePool, ONE_HUNDRED, {from: oneHundred})
+            await this.stakeToken.transfer(fakePool, BN(6), {from: oneHundred})
             await this.rewardToken.transfer(account2, BN(10), {from: oneHundred})
             await this.rewardToken.approve(this.airswap.address, BN(10), {from:account2})
             let order3 = new Order(nonce, expiry, this.airswap.address, oneHundred, BN(3), this.rewardToken.address, this.liquidator.address, BN(1), this.stakeToken.address)
@@ -348,7 +354,7 @@ contract('Liquidator', function(accounts) {
             assert.equal(await this.liquidator.next.call(trade1), ZERO_ADDRESS)
         })
         it('prunes: drop, drop, drop', async function() {
-            await this.stakeToken.transfer(fakePool, ONE_HUNDRED, {from: oneHundred})
+            await this.stakeToken.transfer(fakePool, BN(6), {from: oneHundred})
             await this.rewardToken.transfer(account2, BN(10), {from: oneHundred})
             await this.rewardToken.approve(this.airswap.address, BN(10), {from:account2})
             let order3 = new Order(nonce, expiry, this.airswap.address, account2, BN(3), this.rewardToken.address, this.liquidator.address, BN(1), this.stakeToken.address)

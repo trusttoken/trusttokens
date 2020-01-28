@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 
 
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+import "./ValSafeMath.sol";
 import "../true-currencies/registry/contracts/Registry.sol";
 
 interface TradeExecutor {
@@ -22,6 +23,8 @@ interface UniswapV1Factory {
 
 
 contract Liquidator {
+    using ValSafeMath for uint256;
+
     address public owner;
     address public pendingOwner;
     mapping (address => uint256) attributes;
@@ -237,6 +240,7 @@ contract Liquidator {
         bytes32 s;                    // `s` value of an ECDSA signature
     }
     bytes4 constant ERC20_KIND = 0x36372b07;
+    uint256 constant SWAP_GAS_COST = 150000;
 
     struct FlatOrder {
         uint256 nonce;                // Unique per order and should be sequential
@@ -286,6 +290,8 @@ contract Liquidator {
         require(outputToken().allowance(_order.signer.wallet, _order.signature.validator) >= _order.signer.amount, "insufficient signer allowance");
         uint256 poolBalance = stakeToken().balanceOf(pool()); 
         require(poolBalance >= _order.sender.amount, "insufficient pool balance");
+        // verify senderAmount / poolBalance > swapGasCost / blockGasLimit
+        require(_order.sender.amount.mul(block.gaslimit, "senderAmount overflow") > poolBalance.mul(SWAP_GAS_COST, "poolBalance overflow"), "order too small");
         // TODO check sig
         address validator = _order.signature.validator;
         /*
