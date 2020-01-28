@@ -337,21 +337,23 @@ contract Liquidator {
             calldatacopy(add(start, 82), 4, 736)
             orderContract := create(0, add(start, 21), 797)
         }
-        TradeExecutor prev = TradeExecutor(0);
+        address prev = address(0);
         TradeExecutor curr = next[address(0)];
         while (curr != TradeExecutor(0)) {
             FlatOrder memory currInfo = airswapOrderInfo(curr);
             // no need to check overflow because multiplying unsigned values under 16 bytes results in an unsigned value under 32 bytes
-            if (currInfo.signerAmount * _order.sender.amount > currInfo.senderAmount * _order.signer.amount) {
+            if (currInfo.signerAmount * _order.sender.amount < currInfo.senderAmount * _order.signer.amount) {
                 require(poolBalance >= _order.sender.amount, "insufficent remaining pool balance");
                 next[address(orderContract)] = curr;
-                next[address(prev)] = orderContract;
+                next[prev] = orderContract;
+                emit LimitOrder(orderContract);
                 return orderContract;
             }
             poolBalance -= currInfo.senderAmount;
-            prev = curr;
-            curr = next[address(curr)];
+            prev = address(curr);
+            curr = next[prev];
         }
+        require(poolBalance >= _order.sender.amount, "insufficent remaining pool balance");
         next[address(prev)] = orderContract;
         emit LimitOrder(orderContract);
         return orderContract;
