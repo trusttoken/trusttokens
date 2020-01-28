@@ -146,6 +146,7 @@ contract Liquidator {
         stakeUniswapV1State.tokenBalance = stakeToken().balanceOf(address(stakeUniswapV1State.uniswap));
         int256 remainingDebt = _debt;
         TradeExecutor curr = head;
+        // TODO check gasleft
         while (curr != TradeExecutor(0)) {
             FlatOrder memory order = airswapOrderInfo(curr);
             if (order.senderAmount <= remainingStake) {
@@ -157,7 +158,7 @@ contract Liquidator {
                 if (success) {
                     emit Fill(curr);
                     remainingDebt -= int256(order.signerAmount);
-                    remainingStake -= order.senderAmount; // underflow not possible because airswap tranfer succeeded
+                    remainingStake -= order.senderAmount; // underflow not possible because airswap transfer succeeded
                     emit Liquidated(order.senderAmount, order.signerAmount);
                     if (remainingDebt <= 0) {
                         break;
@@ -238,12 +239,12 @@ contract Liquidator {
         uint256 expiry;               // Expiry in seconds since 1 January 1970
         bytes4 signerKind;                  // Interface ID of the token
         address signerWallet;               // Wallet address of the party
-        address signerToken;                // Contract address of the token
+        IERC20 signerToken;                 // Contract address of the token
         uint256 signerAmount;               // Amount for ERC-20 or ERC-1155
         uint256 signerId;                   // ID for ERC-721 or ERC-1155
         bytes4 senderKind;                  // Interface ID of the token
         address senderWallet;               // Wallet address of the party
-        address senderToken;                // Contract address of the token
+        IERC20 senderToken;                 // Contract address of the token
         uint256 senderAmount;               // Amount for ERC-20 or ERC-1155
         uint256 senderId;                   // ID for ERC-721 or ERC-1155
         bytes4 affiliateKind;                  // Interface ID of the token
@@ -277,6 +278,11 @@ contract Liquidator {
         require(_order.signer.amount < MAX_UINT128, "bid too large");
         require(_order.affiliate.amount == 0, "affiliate amount must be zero");
         require(_order.affiliate.wallet == address(0), "affiliate wallet must be zero");
+        require(outputToken().balanceOf(_order.signer.wallet) >= _order.signer.amount, "insufficient signer balance");
+        require(outputToken().allowance(_order.signer.wallet, _order.signature.validator) >= _order.signer.amount, "insufficient signer allowance");
+        uint256 poolBalance = stakeToken().balanceOf(pool()); 
+        require(poolBalance >= _order.sender.amount, "insufficient pool balance");
+        // TODO check sig
         address validator = _order.signature.validator;
         /*
             Create an order contract with the bytecode to call the validator with the supplied args
@@ -333,6 +339,7 @@ contract Liquidator {
             FlatOrder memory currInfo = airswapOrderInfo(curr);
             // no need to check overflow because multiplying unsigned values under 16 bytes results in an unsigned value under 32 bytes
             if (currInfo.signerAmount * _order.sender.amount > currInfo.senderAmount * _order.signer.amount) {
+                require(poolBalance >= _order.sender.amount, "insufficent remaining pool balance");
                 next[address(orderContract)] = curr;
                 if (prev == TradeExecutor(0)) {
                     head = orderContract;
@@ -341,6 +348,7 @@ contract Liquidator {
                 }
                 return orderContract;
             }
+            poolBalance -= currInfo.senderAmount;
             prev = curr;
             curr = next[address(curr)];
         }
@@ -354,10 +362,58 @@ contract Liquidator {
     }
 
     /**
+        If the order cannot be executed at this moment, it is prunable
+        No need to check things immutably true that were checked during registration
+    */
+    function prunableOrder(FlatOrder memory _order) internal view returns (bool) {
+        if (_order.expiry < now) {
+            return true;
+        }
+        // can assume rewardToken == outputToken()
+        IERC20 rewardToken = _order.signerToken;
+        if (rewardToken.balanceOf(_order.signerWallet) < _order.signerAmount) {
+            return true;
+        }
+        if (rewardToken.allowance(_order.signerWallet, _order.validator) < _order.signerAmount) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
         Remove all orders that would fail
         Remove all orders worse than what is available in uniswap
     */
     function prune() external {
-        // TODO
+        // Normally you can loop over a singly-linked list with a pointer pointer :(
+        TradeExecutor curr = head;
+        while (curr != TradeExecutor(0)) {
+            FlatOrder memory currInfo = airswapOrderInfo(curr);
+            if (prunableOrder(currInfo)) {
+                emit Cancel(curr);
+                address prev = address(curr);
+                curr = next[prev];
+                next[prev] = TradeExecutor(0);
+            } else {
+                break;
+            }
+        }
+        if (head != curr) {
+            head = curr;
+        }
+        TradeExecutor prev = curr;
+        curr = next[address(curr)];
+        // TODO check gasleft
+        while (curr != TradeExecutor(0)) {
+            FlatOrder memory currInfo = airswapOrderInfo(curr);
+            if (prunableOrder(currInfo)) {
+                emit Cancel(curr);
+                next[address(curr)] = TradeExecutor(0);
+            } else {
+                next[address(prev)] = curr;
+                prev = curr;
+            }
+            curr = next[address(curr)];
+        }
     }
 }
