@@ -31,7 +31,6 @@ contract Liquidator {
         Invariant: orders are sorted by greatest output amount
     */
     // sorted singly-linked list
-    TradeExecutor public head;
     mapping (/* TradeExecutor */ address => TradeExecutor) public next;
 
     bytes32 constant APPROVED_BENEFICIARY = "approvedBeneficiary";
@@ -127,6 +126,10 @@ contract Liquidator {
         inputAmount = (stakeUniswapV1State.tokenBalance * ethNeeded * 1000) / (997 * (stakeUniswapV1State.etherBalance - ethNeeded)) + 1;
     }
 
+    function head() public view returns (TradeExecutor) {
+        return next[address(0)];
+    }
+
     function reclaim(int256 _debt, address _destination) external onlyOwner {
         require(_debt > 0, "Must reclaim positive amount");
         require(_debt < int256(MAX_UINT128), "reclaim amount too large");
@@ -145,7 +148,7 @@ contract Liquidator {
         stakeUniswapV1State.etherBalance = address(stakeUniswapV1State.uniswap).balance;
         stakeUniswapV1State.tokenBalance = stakeToken().balanceOf(address(stakeUniswapV1State.uniswap));
         int256 remainingDebt = _debt;
-        TradeExecutor curr = head;
+        TradeExecutor curr = head();
         // TODO check gasleft
         while (curr != TradeExecutor(0)) {
             FlatOrder memory order = airswapOrderInfo(curr);
@@ -170,10 +173,11 @@ contract Liquidator {
             } else {
                 emit Cancel(curr);
             }
-            curr = next[address(curr)];
-            next[address(curr)] = TradeExecutor(0);
+            address prev = address(curr);
+            curr = next[prev];
+            next[prev] = TradeExecutor(0);
         }
-        head = curr;
+        next[address(0)] = curr;
         if (remainingDebt > 0) {
             if (remainingStake > 0) {
                 if (outputForUniswapV1Input(remainingStake, outputUniswapV1State, stakeUniswapV1State) < uint256(remainingDebt)) {
@@ -334,29 +338,21 @@ contract Liquidator {
             orderContract := create(0, add(start, 21), 797)
         }
         TradeExecutor prev = TradeExecutor(0);
-        TradeExecutor curr = head;
+        TradeExecutor curr = next[address(0)];
         while (curr != TradeExecutor(0)) {
             FlatOrder memory currInfo = airswapOrderInfo(curr);
             // no need to check overflow because multiplying unsigned values under 16 bytes results in an unsigned value under 32 bytes
             if (currInfo.signerAmount * _order.sender.amount > currInfo.senderAmount * _order.signer.amount) {
                 require(poolBalance >= _order.sender.amount, "insufficent remaining pool balance");
                 next[address(orderContract)] = curr;
-                if (prev == TradeExecutor(0)) {
-                    head = orderContract;
-                } else {
-                    next[address(prev)] = orderContract;
-                }
+                next[address(prev)] = orderContract;
                 return orderContract;
             }
             poolBalance -= currInfo.senderAmount;
             prev = curr;
             curr = next[address(curr)];
         }
-        if (prev == TradeExecutor(0)) {
-            head = orderContract;
-        } else {
-            next[address(prev)] = orderContract;
-        }
+        next[address(prev)] = orderContract;
         emit LimitOrder(orderContract);
         return orderContract;
     }
@@ -386,7 +382,9 @@ contract Liquidator {
     */
     function prune() external {
         // Normally you can loop over a singly-linked list with a pointer pointer :(
-        TradeExecutor curr = head;
+        address prevValid = address(0);
+        TradeExecutor curr = next[address(0)];
+        // TODO check gasleft
         while (curr != TradeExecutor(0)) {
             FlatOrder memory currInfo = airswapOrderInfo(curr);
             if (prunableOrder(currInfo)) {
@@ -395,25 +393,13 @@ contract Liquidator {
                 curr = next[prev];
                 next[prev] = TradeExecutor(0);
             } else {
-                break;
+                if (next[prevValid] != curr) {
+                    next[prevValid] = curr;
+                }
+                prevValid = address(curr);
+                curr = next[prevValid];
             }
         }
-        if (head != curr) {
-            head = curr;
-        }
-        TradeExecutor prev = curr;
-        curr = next[address(curr)];
-        // TODO check gasleft
-        while (curr != TradeExecutor(0)) {
-            FlatOrder memory currInfo = airswapOrderInfo(curr);
-            if (prunableOrder(currInfo)) {
-                emit Cancel(curr);
-                next[address(curr)] = TradeExecutor(0);
-            } else {
-                next[address(prev)] = curr;
-                prev = curr;
-            }
-            curr = next[address(curr)];
-        }
+        next[prevValid] = curr;
     }
 }
