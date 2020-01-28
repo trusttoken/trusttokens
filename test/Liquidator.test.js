@@ -10,13 +10,13 @@ const TransferHandlerRegistry = artifacts.require('TransferHandlerRegistry')
 const UniswapFactory = artifacts.require('uniswap_factory')
 const UniswapExchange = artifacts.require('uniswap_exchange')
 const Registry = artifacts.require('RegistryMock')
-const { Order } = require('./lib/airswap.js')
+const { Order, hashDomain } = require('./lib/airswap.js')
 const Types = artifacts.require('Types')
 const ERC20_KIND = '0x36372b07'
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000'
 const bytes32 = require('../true-currencies/test/helpers/bytes32.js')
-const IS_AIRSWAP_VALIDATOR = bytes32('isAirswapValidator')
+const AIRSWAP_VALIDATOR = bytes32('AirswapValidatorDomain')
 const APPROVED_BENEFICIARY = bytes32('approvedBeneficiary')
 
 contract('Liquidator', function(accounts) {
@@ -51,9 +51,9 @@ contract('Liquidator', function(accounts) {
         await this.stakeToken.mint(oneHundred, ONE_HUNDRED, {from:issuer});
         this.airswap = await Airswap.new(this.transferHandlerRegistry.address, {from: owner})
         this.liquidator = await Liquidator.new(fakePool, this.registry.address, this.rewardToken.address, this.stakeToken.address, this.outputUniswap.address, this.stakeUniswap.address, {from: owner})
-        await this.registry.subscribe(IS_AIRSWAP_VALIDATOR, this.liquidator.address, {from: owner})
+        await this.registry.subscribe(AIRSWAP_VALIDATOR, this.liquidator.address, {from: owner})
         await this.registry.subscribe(APPROVED_BENEFICIARY, this.liquidator.address, {from: owner})
-        await this.registry.setAttributeValue(this.airswap.address, IS_AIRSWAP_VALIDATOR, 1, {from: owner})
+        await this.registry.setAttributeValue(this.airswap.address, AIRSWAP_VALIDATOR, hashDomain(this.airswap.address), {from: owner})
         await this.registry.setAttributeValue(approvedBeneficiary, APPROVED_BENEFICIARY, 1, {from: owner})
         await this.rewardToken.approve(this.airswap.address, ONE_HUNDRED, {from: oneHundred})
         await this.stakeToken.approve(this.liquidator.address, ONE_HUNDRED, { from: fakePool })
@@ -94,6 +94,13 @@ contract('Liquidator', function(accounts) {
             let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED, this.stakeToken.address)
             await order.sign()
             await this.airswap.cancelUpTo(nonce + 1, {from:oneHundred})
+            await assertRevert(this.liquidator.registerAirswap(order.web3Tuple))
+        })
+        it('prevents invalid signatures', async function() {
+            await this.stakeToken.transfer(fakePool, ONE_HUNDRED, {from: oneHundred})
+            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED, this.stakeToken.address)
+            await order.sign()
+            order.s = '5555555555555555555555555555555555555555555555555555555555555555'
             await assertRevert(this.liquidator.registerAirswap(order.web3Tuple))
         })
     })

@@ -29,6 +29,7 @@ contract Liquidator {
     address public owner;
     address public pendingOwner;
     mapping (address => uint256) attributes;
+    mapping (address => bytes32) domainSeparators;
     /**
         We DELEGATECALL into orders to invoke them
         orders execute and return some amount or zero
@@ -40,12 +41,11 @@ contract Liquidator {
     bytes32 constant APPROVED_BENEFICIARY = "approvedBeneficiary";
     uint256 constant LIQUIDATOR_CAN_RECEIVE     = 0xff00000000000000000000000000000000000000000000000000000000000000;
     uint256 constant LIQUIDATOR_CAN_RECEIVE_INV = 0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
-    bytes32 constant IS_AIRSWAP_VALIDATOR = "isAirswapValidator";
-    uint256 constant AIRSWAP_VALIDATOR     = 0x00ff000000000000000000000000000000000000000000000000000000000000;
-    uint256 constant AIRSWAP_VALIDATOR_INV = 0xff00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+    bytes32 constant AIRSWAP_VALIDATOR = "AirswapValidatorDomain";
     uint256 constant MAX_UINT = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
     uint256 constant MAX_UINT128 = 0xffffffffffffffffffffffffffffffff;
     bytes1 constant AIRSWAP_AVAILABLE = bytes1(0x0);
+    bytes2 EIP191_HEADER = 0x1901;
     function outputToken() internal view returns (IERC20);
     function stakeToken() internal view returns (IERC20);
     function outputUniswapV1() internal view returns (UniswapV1);
@@ -89,13 +89,13 @@ contract Liquidator {
     }
 
     function syncAttributeValue(address _account, bytes32 _attribute, uint256 _value) external onlyRegistry {
-        if (_attribute == IS_AIRSWAP_VALIDATOR) {
+        if (_attribute == AIRSWAP_VALIDATOR) {
             if (_value > 0) {
                 stakeToken().approve(_account, 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff);
-                attributes[_account] |= AIRSWAP_VALIDATOR;
+                domainSeparators[_account] = bytes32(_value);
             } else {
                 stakeToken().approve(_account, 0);
-                attributes[_account] &= AIRSWAP_VALIDATOR_INV;
+                domainSeparators[_account] = bytes32(0);
             }
         } else if (_attribute == APPROVED_BENEFICIARY) {
             if (_value > 0) {
@@ -112,14 +112,14 @@ contract Liquidator {
         uint256 tokenBalance;
     }
 
-    // See ./uniswap/uniswap_exchabge.vy
+    // See ./uniswap/uniswap_exchange.vy
     function outputForUniswapV1Input(uint256 stakeInputAmount, UniswapState memory outputUniswapV1State, UniswapState memory stakeUniswapV1State) internal pure returns (uint256 outputAmount) {
         uint256 inputAmountWithFee = 997 * stakeInputAmount;
         inputAmountWithFee = 997 * (inputAmountWithFee * stakeUniswapV1State.etherBalance) / (stakeUniswapV1State.tokenBalance * 1000 + inputAmountWithFee);
         outputAmount = (inputAmountWithFee * outputUniswapV1State.tokenBalance) / (outputUniswapV1State.etherBalance * 1000 + inputAmountWithFee);
     }
 
-    // See ./uniswap/uniswap_exchabge.vy
+    // See ./uniswap/uniswap_exchange.vy
     function inputForUniswapV1Output(uint256 outputAmount, UniswapState memory outputUniswapV1State, UniswapState memory stakeUniswapV1State) internal pure returns (uint256 inputAmount) {
         if (outputAmount >= outputUniswapV1State.tokenBalance) {
             return MAX_UINT128;
@@ -275,28 +275,49 @@ contract Liquidator {
         }
     }
 
+    bytes32 constant ORDER_TYPEHASH = 0x1b7987701aec5d914b7e2663640474d587fdf71bf8cf50a672b29ff7ddc7b557;
+    bytes32 constant PARTY_TYPEHASH = 0xf7dd27dc10c7dbaecb34f7bf8396d9ce2f7972a5556959ec094912041b15e285;
+    bytes32 constant DOMAIN_TYPEHASH = 0x91ab3d17e3a50a9d89e63fd30b92be7f5336b03b287bb946787a83a9d62a2766;
+    bytes32 constant ZERO_PARTY_HASH = 0xb3df6f92b1402b8652ec14dde0ab8816789b2da8a6b0962109a31f4c72c625d2;
+
+    function hashERC20Party(Party memory _party) internal pure returns (bytes32) {
+        return keccak256(abi.encode(PARTY_TYPEHASH, ERC20_KIND, _party.wallet, _party.token, _party.amount, _party.id));
+    }
+
+    function validAirswapSignature(Order memory _order) internal view returns (bool) {
+        bytes32 hash = keccak256(abi.encodePacked(EIP191_HEADER, domainSeparators[_order.signature.validator], keccak256(abi.encode(ORDER_TYPEHASH, _order.nonce, _order.expiry, hashERC20Party(_order.signer), hashERC20Party(_order.sender), ZERO_PARTY_HASH))));
+        if (_order.signature.version == 0x45) {
+            return ecrecover(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", hash)), _order.signature.v, _order.signature.r, _order.signature.s) == _order.signature.signatory;
+        } else if (_order.signature.version == 0x01) {
+            return ecrecover(hash, _order.signature.v, _order.signature.r, _order.signature.s) == _order.signature.signatory;
+        } else {
+            return false;
+        }
+    }
+
     function registerAirswap(Order calldata _order) external returns (TradeExecutor orderContract) {
-        require(attributes[_order.signature.validator] & AIRSWAP_VALIDATOR != 0, "unregistered validator");
+        require(domainSeparators[_order.signature.validator] != bytes32(0), "unregistered validator");
         require(_order.expiry > now + 1 hours, "expiry too soon");
-        require(_order.sender.kind == ERC20_KIND, "erc20");
+        require(_order.sender.kind == ERC20_KIND, "send erc20");
         require(_order.sender.wallet == address(this), "counterparty must be liquidator");
         require(_order.sender.amount < MAX_UINT128, "ask too large");
         require(_order.sender.token == stakeToken(), "must buy stake");
-        require(_order.signer.kind == ERC20_KIND, "erc20");
+        require(_order.signer.kind == ERC20_KIND, "sign erc20");
         require(_order.signer.token == outputToken(), "incorrect token offerred");
         require(_order.signer.amount < MAX_UINT128, "bid too large");
         require(_order.affiliate.amount == 0, "affiliate amount must be zero");
         require(_order.affiliate.wallet == address(0), "affiliate wallet must be zero");
+        require(_order.affiliate.kind == ERC20_KIND, "affiliate erc20");
         require(outputToken().balanceOf(_order.signer.wallet) >= _order.signer.amount, "insufficient signer balance");
         require(outputToken().allowance(_order.signer.wallet, _order.signature.validator) >= _order.signer.amount, "insufficient signer allowance");
         uint256 poolBalance = stakeToken().balanceOf(pool()); 
         require(poolBalance >= _order.sender.amount, "insufficient pool balance");
         // verify senderAmount / poolBalance > swapGasCost / blockGasLimit
         require(_order.sender.amount.mul(block.gaslimit, "senderAmount overflow") > poolBalance.mul(SWAP_GAS_COST, "poolBalance overflow"), "order too small");
-        // TODO check sig
         Swap validator = Swap(_order.signature.validator);
         require(validator.signerMinimumNonce(_order.signer.wallet) <= _order.nonce, "signer minimum nonce is higher");
         require(validator.signerNonceStatus(_order.signer.wallet, _order.nonce) == AIRSWAP_AVAILABLE, "signer nonce unavailable");
+        require(validAirswapSignature(_order), "signature invalid");
         /*
             Create an order contract with the bytecode to call the validator with the supplied args
             During execution this liquidator will delegatecall into the order contract

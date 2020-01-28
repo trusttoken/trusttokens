@@ -173,6 +173,14 @@ class Order {
     }
 }
 
+/*
+console.log('ORDER_TYPEHASH', ORDER_TYPEHASH)
+console.log('PARTY_TYPEHASH', PARTY_TYPEHASH)
+console.log('DOMAIN_TYPEHASH', EIP712_DOMAIN_TYPEHASH)
+console.log('ZERO_PARTY_HASH', hashParty(ZERO_PARTY))
+*/
+
 module.exports = {
     Order,
+    hashDomain,
 }
