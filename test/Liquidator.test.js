@@ -68,6 +68,14 @@ contract('Liquidator', function(accounts) {
         it('prevents liquidation of zero', async function() {
             await assertRevert(this.liquidator.reclaim(BN(0), approvedBeneficiary, {from:owner}))
         })
+        it('prevents registering orders with non-airswap validator', async function() {
+            let nonce = 0
+            let expiry = parseInt(Date.now() / 1000) + 12000
+            await this.stakeToken.transfer(fakePool, BN(100), {from: oneHundred})
+            let order = new Order(nonce, expiry, this.liquidator.address, oneHundred, ONE_HUNDRED, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED, this.stakeToken.address)
+            await order.sign()
+            await assertRevert(this.liquidator.registerAirswap(order.web3Tuple))
+        })
     })
     describe('Airswap', function() {
         let nonce = 0

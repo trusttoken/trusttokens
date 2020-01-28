@@ -354,7 +354,7 @@ contract Liquidator {
             curr = next[prev];
         }
         require(poolBalance >= _order.sender.amount, "insufficent remaining pool balance");
-        next[address(prev)] = orderContract;
+        next[prev] = orderContract;
         emit LimitOrder(orderContract);
         return orderContract;
     }
