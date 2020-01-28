@@ -4,4 +4,4 @@ import "../../true-currencies/contracts/mocks/TrueUSDMock.sol";
 import "../../true-currencies/registry/contracts/mocks/RegistryMock.sol";
 import "../../true-currencies/contracts/Proxy/OwnedUpgradeabilityProxy.sol";
 
-contract AllDependencies is OwnedUpgradeabilityProxy, TrueUSDMock, RegistryMock {}
+contract TrustTokenDependencies is OwnedUpgradeabilityProxy, TrueUSDMock, RegistryMock {}

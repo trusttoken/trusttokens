@@ -17,9 +17,10 @@
     "url": "https://github.com/trusttoken/trusttokens/issues"
   },
   "dependencies": {
+    "wjm-airswap-swap": "5.0.1",
     "babel-polyfill": "6.26.0",
     "babel-preset-env": "1.6.1",
-    "ganache-cli": "6.1.0",
+    "ganache-cli": "6.8.1",
     "openzeppelin-solidity": "2.4.0",
     "truffle": "5.0.4",
     "truffle-hdwallet-provider": "0.0.3",
@@ -27,6 +28,7 @@
   },
   "homepage": "https://github.com/trusttoken/trusttokens#readme",
   "devDependencies": {
+    "babel-register": "6.26.0",
     "solidity-coverage": "^0.7.0"
   }
 }
