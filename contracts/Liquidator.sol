@@ -6,6 +6,7 @@ pragma experimental ABIEncoderV2;
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "./ValSafeMath.sol";
 import "../true-currencies/registry/contracts/Registry.sol";
+import "wjm-airswap-swap/contracts/Swap.sol";
 
 interface TradeExecutor {
 }
@@ -365,11 +366,12 @@ contract Liquidator {
         return orderContract;
     }
 
+    bytes1 constant AIRSWAP_AVAILABLE = bytes1(0x0);
     /**
         If the order cannot be executed at this moment, it is prunable
         No need to check things immutably true that were checked during registration
     */
-    function prunableOrder(FlatOrder memory _order) internal view returns (bool) {
+    function prunableOrder(FlatOrder memory _order) internal /*view*/ returns (bool) {
         if (_order.expiry < now) {
             return true;
         }
@@ -379,6 +381,12 @@ contract Liquidator {
             return true;
         }
         if (rewardToken.allowance(_order.signerWallet, _order.validator) < _order.signerAmount) {
+            return true;
+        }
+        if (Swap(_order.validator).signerNonceStatus(_order.signerWallet, _order.nonce) != AIRSWAP_AVAILABLE) {
+            return true;
+        }
+        if (Swap(_order.validator).signerMinimumNonce(_order.signerWallet) > _order.nonce) {
             return true;
         }
         return false;
