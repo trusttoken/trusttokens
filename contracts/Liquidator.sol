@@ -381,7 +381,6 @@ contract Liquidator {
         Remove all orders worse than what is available in uniswap
     */
     function prune() external {
-        // Normally you can loop over a singly-linked list with a pointer pointer :(
         address prevValid = address(0);
         TradeExecutor curr = next[address(0)];
         // TODO check gasleft
