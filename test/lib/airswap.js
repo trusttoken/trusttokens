@@ -1,5 +1,4 @@
 const ERC20_INTERFACE_ID = '0x36372b07'
-const BYTES12_ZERO = '000000000000000000000000'
 const ORDER_TYPEHASH = web3.utils.sha3('Order(uint256 nonce,uint256 expiry,Party signer,Party sender,Party affiliate)Party(bytes4 kind,address wallet,address token,uint256 amount,uint256 id)')
 const PARTY_TYPEHASH = web3.utils.sha3('Party(bytes4 kind,address wallet,address token,uint256 amount,uint256 id)')
 const EIP712_DOMAIN_TYPEHASH = web3.utils.sha3('EIP712Domain(string name,string version,address verifyingContract)')
@@ -8,21 +7,7 @@ const DOMAIN_VERSION = '2'
 //const SIG191_VERSION = '0x01'
 const SIG191_VERSION = '0x45'
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
-
-function uint256Bytes32(uint256) {
-    let bytes = uint256.toString(16)
-    if (bytes.length < 64) {
-        bytes = '0'.repeat(64 - bytes.length) + bytes
-    }
-    assert(bytes.length == 64)
-    return bytes
-}
-
-function addressBytes32(address) {
-    let bytes =  BYTES12_ZERO + address.slice(2)
-    assert(bytes.length == 64)
-    return bytes
-}
+const { uint256Bytes32, addressBytes32 } = require('./abi.js')
 
 function hashParty(party) {
     let input = (PARTY_TYPEHASH
