@@ -96,7 +96,7 @@ contract('Vesting', function(accounts) {
         console.log(8)
         const claim = await this.vesting.claim(0, {from: account1})
         console.log(9)
-        assert.equal(await this.token.balanceOf.call(account1), ONE_HUNDRED)
+        assert(ONE_HUNDRED.eq(await this.token.balanceOf.call(account1)), "100 not received")
         */
     })
 })
