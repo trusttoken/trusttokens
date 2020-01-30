@@ -29,8 +29,8 @@ contract Vesting /*is IERC721*/ {
     function totalSupply() public view returns (uint256) {
         return mintOperations.length;
     }
-    function ownerOf(uint256 nonce) public view returns (address) {
-        return mintOperations[nonce].recipient;
+    function ownerOf(uint256 tokenId) public view returns (address) {
+        return mintOperations[tokenId].recipient;
     }
 
     function token() internal view returns (TrustToken);
@@ -43,9 +43,9 @@ contract Vesting /*is IERC721*/ {
     event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId);
     event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
     // Vesting
-    event MintScheduled(uint256 indexed nonce, address indexed recipient, uint256 indexed amount, uint256 activation);
-    event MintCancelled(uint256 indexed nonce);
-    event MintClaimed(uint256 indexed nonce, address indexed beneficiary);
+    event MintScheduled(uint256 indexed tokenId, address indexed recipient, uint256 indexed amount, uint256 activation);
+    event MintCancelled(uint256 indexed tokenId);
+    event MintClaimed(uint256 indexed tokenId, address indexed beneficiary);
 
     modifier onlyPendingOwner() {
         require(msg.sender == pendingOwner, "only pending owner");
