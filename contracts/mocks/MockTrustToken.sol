@@ -12,8 +12,4 @@ contract MockTrustToken is TrustToken {
     function registry() internal view returns (Registry) {
         return registry_;
     }
-
-    function mint(address _to, uint256 _amount) external {
-        _mint(_to, _amount);
-    }
 }
