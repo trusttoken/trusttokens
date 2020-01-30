@@ -33,24 +33,27 @@ contract MultisigLiquidator {
     }
 
     function liquidator() internal view returns (Liquidator);
-    event Data(bytes32 indexed hash,bytes data);
+    event Action(uint256 indexed nonce, address indexed owner1, address indexed owner2, bytes action);
 
-    modifier msValidated(bytes memory action, bytes[2] memory signatures) {
+    function msValidate(bytes memory action, bytes[2] memory signatures) internal {
         address[3] memory firstSignatureCandidates;
         firstSignatureCandidates[0] = owners[0];
         firstSignatureCandidates[1] = owners[1];
         firstSignatureCandidates[2] = owners[2];
+        uint256 _nonce = nonce;
         bytes memory data = abi.encodePacked(address(this), nonce++, action);
         bytes32 hash = keccak256(data);
-        emit Data(hash, data);
         address recoveredNoPrefix = hash.recover(signatures[0]);
         address recoveredWithPrefix = hash.toEthSignedMessageHash().recover(signatures[0]);
         address[3] memory secondSignatureCandidates;
-        uint8 unmatchingSignatureCount = 0; 
+        uint8 unmatchingSignatureCount = 0;
+        address owner1;
         for (uint256 i = 3; i --> 0;) {
             address candidate = firstSignatureCandidates[i];
             if (candidate != recoveredNoPrefix && candidate != recoveredWithPrefix) {
                 secondSignatureCandidates[unmatchingSignatureCount++] = candidate;
+            } else {
+                owner1 = candidate;
             }
         }
         require(unmatchingSignatureCount == 2, "invalid first signature");
@@ -58,14 +61,17 @@ contract MultisigLiquidator {
         recoveredNoPrefix = hash.recover(signatures[1]);
         recoveredWithPrefix = hash.toEthSignedMessageHash().recover(signatures[1]);
         unmatchingSignatureCount = 0;
+        address owner2;
         for (uint256 i = 2; i --> 0;) {
             address candidate = secondSignatureCandidates[i];
             if (candidate != recoveredNoPrefix && candidate != recoveredWithPrefix) {
                 unmatchingSignatureCount++;
+            } else {
+                owner2 = candidate;
             }
         }
         require(unmatchingSignatureCount == 1, "invalid second signature");
-        _;
+        emit Action(_nonce, owner1, owner2, action);
     }
 
     modifier onlySelf {
@@ -85,13 +91,15 @@ contract MultisigLiquidator {
         }
     }
 
-    function liquidatorCall(bytes memory action, bytes[2] memory signatures) msValidated(action, signatures) internal returns (bytes memory) {
+    function liquidatorCall(bytes memory action, bytes[2] memory signatures) internal returns (bytes memory) {
+        msValidate(action, signatures);
         (bool success, bytes memory result) = address(liquidator()).call(action);
         require(success, string(result));
         return result;
     }
 
-    function multisigCall(bytes memory action, bytes[2] memory signatures) msValidated(action, signatures) internal returns (bytes memory) {
+    function multisigCall(bytes memory action, bytes[2] memory signatures) internal returns (bytes memory) {
+        msValidate(action, signatures);
         (bool success, bytes memory result) = address(this).call(action);
         require(success, string(result));
         return result;
@@ -99,6 +107,10 @@ contract MultisigLiquidator {
 
     function reclaim(int256 _debt, address _destination, bytes[2] memory signatures) public returns (bytes memory) {
         return liquidatorCall(abi.encodeWithSignature("reclaim(int256,address)", _debt, _destination), signatures);
+    }
+
+    function claimOwnership(bytes[2] memory signatures) public returns (bytes memory) {
+        return liquidatorCall(abi.encodeWithSignature("claimOwnership()"), signatures);
     }
 
     function msUpdateOwner(address oldOwner, address newOwner, bytes[2] memory signatures) public returns (bytes memory) {

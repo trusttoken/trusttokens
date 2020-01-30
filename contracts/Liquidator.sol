@@ -82,6 +82,11 @@ contract Liquidator {
         require(msg.sender == owner, "only owner");
         _;
     }
+
+    function transferOwnership(address newOwner) public onlyOwner {
+        pendingOwner = newOwner;
+    }
+
     function claimOwnership() public onlyPendingOwner {
         emit OwnershipTransferred(owner, pendingOwner);
         owner = pendingOwner;

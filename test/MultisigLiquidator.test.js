@@ -20,7 +20,7 @@ const ZERO_BYTES32 = '0x00000000000000000000000000000000000000000000000000000000
 const bytes32 = require('../true-currencies/test/helpers/bytes32.js')
 const AIRSWAP_VALIDATOR = bytes32('AirswapValidatorDomain')
 const APPROVED_BENEFICIARY = bytes32('approvedBeneficiary')
-const { addressBytes32 } = require('./lib/abi.js')
+const { addressBytes32, uint256Bytes32 } = require('./lib/abi.js')
 
 
 contract('MultisigLiquidator', function(accounts) {
@@ -62,20 +62,65 @@ contract('MultisigLiquidator', function(accounts) {
 
         this.multisig = await MultisigLiquidator.new([owner, auditor, issuer], this.liquidator.address)
     })
-    it('updates owners', async function() {
-        assert.equal(await this.multisig.owners.call(0), owner, "first owner mismatch")
-        assert.equal(await this.multisig.owners.call(1), auditor, "second owner mismatch")
-        assert.equal(await this.multisig.owners.call(2), issuer, "third owner mismatch")
-        assert.equal(await this.multisig.nonce.call(), 0)
+    describe('Self Operations', function() {
+        it('updates owners', async function() {
+            assert.equal(await this.multisig.owners.call(0), owner, "first owner mismatch")
+            assert.equal(await this.multisig.owners.call(1), auditor, "second owner mismatch")
+            assert.equal(await this.multisig.owners.call(2), issuer, "third owner mismatch")
+            assert.equal(await this.multisig.nonce.call(), 0)
 
-        const action = web3.utils.sha3('updateOwner(address,address)').slice(0,10) + addressBytes32(owner) + addressBytes32(anotherAccount)
-        const sig1 = await signAction(issuer, this.multisig.address, 0, action)
-        const sig2 = await signAction(auditor, this.multisig.address, 0, action)
-        const updated = await this.multisig.msUpdateOwner(owner, anotherAccount, [sig1, sig2])
+            const action = web3.utils.sha3('updateOwner(address,address)').slice(0,10) + addressBytes32(owner) + addressBytes32(anotherAccount)
+            const sig1 = await signAction(issuer, this.multisig.address, 0, action)
+            const sig2 = await signAction(auditor, this.multisig.address, 0, action)
+            const updated = await this.multisig.msUpdateOwner(owner, anotherAccount, [sig1, sig2])
 
-        assert.equal(await this.multisig.owners.call(0), anotherAccount, "first owner mismatch")
-        assert.equal(await this.multisig.owners.call(1), auditor, "second owner mismatch")
-        assert.equal(await this.multisig.owners.call(2), issuer, "third owner mismatch")
-        assert.equal(await this.multisig.nonce.call(), 1)
+            assert.equal(await this.multisig.owners.call(0), anotherAccount, "first owner mismatch")
+            assert.equal(await this.multisig.owners.call(1), auditor, "second owner mismatch")
+            assert.equal(await this.multisig.owners.call(2), issuer, "third owner mismatch")
+            assert.equal(await this.multisig.nonce.call(), 1)
+        })
+    })
+    describe('Liquidator Operations', function() {
+        beforeEach(async function() {
+            await this.liquidator.transferOwnership(this.multisig.address, {from:owner})
+            const action = web3.utils.sha3('claimOwnership()').slice(0, 10)
+            const sig1 = await signAction(issuer, this.multisig.address, 0, action)
+            const sig2 = await signAction(owner, this.multisig.address, 0, action)
+            await this.multisig.claimOwnership([sig1, sig2])
+        })
+        it('reclaims', async function() {
+            const action = (web3.utils.sha3('reclaim(int256,address)').slice(0, 10) + uint256Bytes32(ONE_HUNDRED) + addressBytes32(approvedBeneficiary)).toLowerCase()
+            const sig1 = await signAction(issuer, this.multisig.address, 1, action)
+            const sig2 = await signAction(owner, this.multisig.address, 1, action)
+            const reclaimed = await this.multisig.reclaim(ONE_HUNDRED, approvedBeneficiary, [sig1, sig2])
+            assert.equal(reclaimed.logs.length, 1, "Action")
+            assert.equal(reclaimed.logs[0].event, "Action")
+            assert.equal(reclaimed.logs[0].args.nonce, 1, "first nonce")
+            assert.equal(reclaimed.logs[0].args.owner1, issuer, "incorrect owner1")
+            assert.equal(reclaimed.logs[0].args.owner2, owner, "incorrect owner2")
+            assert.equal(reclaimed.logs[0].args.action, action, "different action")
+        })
+    })
+    describe('auth', function() {
+        it('checks first signature', async function() {
+            const action = web3.utils.sha3('updateOwner(address,address)').slice(0,10) + addressBytes32(owner) + addressBytes32(anotherAccount)
+            const somethingElse = web3.utils.sha3('updateOwner(address,address)').slice(0,10) + addressBytes32(anotherAccount) + addressBytes32(owner)
+            const sig1 = await signAction(issuer, this.multisig.address, 0, somethingElse)
+            const sig2 = await signAction(auditor, this.multisig.address, 0, action)
+            await assertRevert(this.multisig.msUpdateOwner(owner, anotherAccount, [sig1, sig2]))
+        })
+        it('checks second signature', async function() {
+            const action = web3.utils.sha3('updateOwner(address,address)').slice(0,10) + addressBytes32(owner) + addressBytes32(anotherAccount)
+            const somethingElse = web3.utils.sha3('updateOwner(address,address)').slice(0,10) + addressBytes32(anotherAccount) + addressBytes32(owner)
+            const sig1 = await signAction(issuer, this.multisig.address, 0, action)
+            const sig2 = await signAction(auditor, this.multisig.address, 0, somethingElse)
+            await assertRevert(this.multisig.msUpdateOwner(owner, anotherAccount, [sig1, sig2]))
+        })
+        it('requires signatures from different parties', async function() {
+            const action = web3.utils.sha3('updateOwner(address,address)').slice(0,10) + addressBytes32(owner) + addressBytes32(anotherAccount)
+            const sig1 = await signAction(auditor, this.multisig.address, 0, action)
+            const sig2 = await signAction(auditor, this.multisig.address, 0, action)
+            await assertRevert(this.multisig.msUpdateOwner(owner, anotherAccount, [sig1, sig2]))
+        })
     })
 })
