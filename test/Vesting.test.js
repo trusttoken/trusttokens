@@ -43,12 +43,8 @@ contract('Vesting', function(accounts) {
         assert.equal(await this.vesting.owner.call(), ZERO_ADDRESS)
         assert.equal(await this.vesting.pendingOwner.call(), ZERO_ADDRESS)
 
-        /*
-        console.log(8)
-        //await this.vesting.claim(0, {from: account1})
-        console.log(9)
-        //assert.equal(await this.token.balanceOf.call(account1), ONE_HUNDRED)
-        */
+        await this.vesting.claim(0, {from: account1})
+        assert(ONE_HUNDRED.eq(await this.token.balanceOf.call(account1)))
     })
 
     it('claim after transferFrom', async function() {
@@ -84,6 +80,8 @@ contract('Vesting', function(accounts) {
         assert.equal(approveAll.logs[0].args.operator, account1)
         assert.equal(approveAll.logs[0].args.approved, true)
         assert.equal(await this.vesting.isApprovedForAll.call(account2, account1), true)
+        assert.equal(1, await this.vesting.balanceOf.call(account2))
+        assert.equal(0, await this.vesting.balanceOf.call(account1))
 
         const transfer2 = await this.vesting.transferFrom(account2, account1, 0, {from:account1})
         assert.equal(transfer2.logs.length, 1, "Transfer")
@@ -91,12 +89,18 @@ contract('Vesting', function(accounts) {
         assert.equal(transfer2.logs[0].args.from, account2)
         assert.equal(transfer2.logs[0].args.to, account1)
         assert.equal(transfer2.logs[0].args.tokenId, 0)
+        assert.equal(0, await this.vesting.balanceOf.call(account2))
+        assert.equal(1, await this.vesting.balanceOf.call(account1))
 
-        /*
-        console.log(8)
         const claim = await this.vesting.claim(0, {from: account1})
-        console.log(9)
+        assert.equal(2, claim.logs.length)
+        assert.equal(claim.logs[0].event, "MintClaimed")
+        assert.equal(claim.logs[0].args.tokenId, 0)
+        assert.equal(claim.logs[0].args.beneficiary, account1)
+        assert.equal(claim.logs[1].event, "Transfer")
+        assert.equal(claim.logs[1].args.from, account1)
+        assert.equal(claim.logs[1].args.to, ZERO_ADDRESS)
+        assert.equal(0, await this.vesting.balanceOf.call(account1))
         assert(ONE_HUNDRED.eq(await this.token.balanceOf.call(account1)), "100 not received")
-        */
     })
 })
