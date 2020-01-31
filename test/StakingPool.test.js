@@ -44,7 +44,7 @@ contract('StakedAsset', function(accounts) {
 
             await this.stakeToken.transfer(this.pool.address, ONE_HUNDRED, {from:fakeLiquidator})
             assert(ONE_HUNDRED.eq(await this.stakeToken.balanceOf.call(this.pool.address)), "100 returned")
-            assert.equal(0, this.pool.balanceOf.call(fakeLiquidator), "liquidator does not get any stake")
+            assert.equal(0, await this.pool.balanceOf.call(fakeLiquidator), "liquidator does not get any stake")
         })
     })
 })
