@@ -165,4 +165,12 @@ contract Vesting /*is IERC721*/ {
     function safeTransferFrom(address from, address to, uint256 tokenId) public {
         safeTransferFrom(from, to, tokenId, "");
     }
+
+    function name() public view returns (string memory) {
+        return string(abi.encodePacked("Unclaimed ", token().symbol()));
+    }
+
+    function symbol() public view returns (string memory) {
+        return string(abi.encodePacked("SOON:", token().symbol()));
+    }
 }

@@ -14,6 +14,15 @@ contract('Vesting', function(accounts) {
         this.vesting = await Vesting.new(this.token.address, {from: owner});
         await this.token.transferOwnership(this.vesting.address, {from: issuer});
     })
+    describe('erc721', function() {
+        it('name', async function() {
+            assert.equal("Unclaimed TRUST", await this.vesting.name.call())
+        })
+        it('symbol', async function() {
+            assert.equal("SOON:TRUST", await this.vesting.symbol.call())
+
+        })
+    })
     describe('auth', function() {
         let timestamp = parseInt(Date.now() / 1000);
         it('prevents non-owner from issuing', async function() {
