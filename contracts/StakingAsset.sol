@@ -9,20 +9,6 @@ contract StakingAsset is IERC20 {
     function symbol() external returns (string memory);
 }
 
-contract RewardPool {
-    function rewardAsset() internal view returns (StakingAsset);
-
-    constructor(address _liquidator, address _owner) public {
-        rewardAsset().approve(_liquidator, 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff);
-        rewardAsset().approve(_owner, 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff);
-    }
- 
-    function tokenFallback(address /*_originalSender*/, uint256 /*_amount*/) external view {
-        assert(msg.sender == address(rewardAsset()));
-    }
-}
-
-
 contract StakedToken is ValTokenWithHook {
     using ValSafeMath for uint256;
 
@@ -48,8 +34,12 @@ contract StakedToken is ValTokenWithHook {
 
     function stakeAsset() internal view returns (StakingAsset);
     function rewardAsset() internal view returns (StakingAsset);
-    function rewardPool() internal view returns (RewardPool);
     function liquidator() internal view returns (address);
+    uint256 constant MAX_UINT256 = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+
+    function initialize() internal {
+        stakeAsset().approve(liquidator(), MAX_UINT256);
+    }
 
     function _transferAllArgs(address _from, address _to, uint256 _value) internal resolveSender(_from) {
         uint256 priorRewards = claimedRewardsPerStake[msg.sender];
@@ -133,8 +123,17 @@ contract StakedToken is ValTokenWithHook {
     }
 
     function tokenFallback(address _originalSender, uint256 _amount) external {
-        require(msg.sender == address(stakeAsset()), "Wrong token");
-        _deposit(_originalSender, _amount);
+        if (msg.sender == address(stakeAsset())) {
+            if (_originalSender == liquidator()) {
+                // do not credit the liquidator
+                return;
+            }
+            _deposit(_originalSender, _amount);
+        } else if (msg.sender == address(rewardAsset())) {
+            _award(_amount);
+        } else {
+            revert("Wrong token");
+        }
     }
 
     function deposit(uint256 _amount) external {
@@ -161,12 +160,16 @@ contract StakedToken is ValTokenWithHook {
             pendingWithdrawals[msg.sender][timestamp] = 0;
         }
         stakePendingWithdrawal = stakePendingWithdrawal.sub(total, "stakePendingWithdrawal underflow");
+        // TODO withdraw funds
     }
 
     function award(uint256 _amount) external {
-        require(rewardAsset().transferFrom(msg.sender, address(rewardPool()), _amount));
+        require(rewardAsset().transferFrom(msg.sender, address(this), _amount));
+    }
+
+    function _award(uint256 _amount) internal {
         uint256 remainder = rewardsRemainder.add(_amount, "overflow");
-        uint256 totalStake = totalSupply;
+        uint256 totalStake = totalSupply.sub(stakePendingWithdrawal, "stake pending withdrawal greater than stake?");
         uint256 rewardsAdded = remainder.div(totalStake, "total stake is zero");
         rewardsRemainder = remainder % totalStake;
         cumulativeRewardsPerStake = cumulativeRewardsPerStake.add(rewardsAdded, "cumulative rewards overflow");
@@ -183,6 +186,6 @@ contract StakedToken is ValTokenWithHook {
         }
         claimedRewardsPerStake[msg.sender] = cumulativeRewardsPerStake;
         require(attributes[uint144(uint160(msg.sender) >> 20)] & ACCOUNT_KYC != 0, "please register at app.trusttoken.com");
-        require(rewardAsset().transferFrom(address(rewardPool()), _destination, dueRewards));
+        require(rewardAsset().transferFrom(address(this), _destination, dueRewards));
     }
 }
