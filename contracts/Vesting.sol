@@ -6,11 +6,21 @@ import "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol";
 import "openzeppelin-solidity/contracts/utils/Address.sol";
 
+
+/**
+* This Vesting contract allows a token issuer to issue tokens in the future.
+* If a mistake is made in the process, the issuer can cancel the mint and reissue.
+* The issuer is expectedd to renounce their ownership after checking all of the pending mints in order to protect the token supply
+* A pending vest is an ERC721 token
+* IERC721 is not implemented because of the current solidity behavior that public members conflict with public functions of the same name
+*/
+
 contract Vesting /*is IERC721*/ {
     using Address for address;
 
     address public owner;
     address public pendingOwner;
+    uint256 burnCount;
     mapping (address => uint256) public balanceOf;
     mapping (address => mapping (address => bool)) public isApprovedForAll;
     mapping (uint256 => address) public getApproved;
@@ -26,8 +36,12 @@ contract Vesting /*is IERC721*/ {
         owner = msg.sender;
     }
 
-    function totalSupply() public view returns (uint256) {
+    function mintOperationCount() public view returns (uint256) {
         return mintOperations.length;
+    }
+    function totalSupply() public view returns (uint256) {
+        // mintOperations.length cannot be greater than burnCount
+        return mintOperations.length - burnCount;
     }
     function ownerOf(uint256 tokenId) public view returns (address) {
         return mintOperations[tokenId].recipient;
@@ -93,6 +107,7 @@ contract Vesting /*is IERC721*/ {
         emit MintCancelled(id);
         emit Transfer(prior, address(0), id);
         balanceOf[prior]--;
+        burnCount++;
         mintOperations[id].recipient = address(0);
     }
 
@@ -107,6 +122,8 @@ contract Vesting /*is IERC721*/ {
         emit MintClaimed(id, beneficiary);
         emit Transfer(holder, address(0), id);
         balanceOf[holder]--;
+        burnCount++;
+        mintOperations[id].recipient = address(0);
         token().mint(beneficiary, mintOperations[id].amount);
     }
 
