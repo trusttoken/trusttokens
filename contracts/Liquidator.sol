@@ -82,6 +82,11 @@ contract Liquidator {
         require(msg.sender == owner, "only owner");
         _;
     }
+
+    function transferOwnership(address newOwner) public onlyOwner {
+        pendingOwner = newOwner;
+    }
+
     function claimOwnership() public onlyPendingOwner {
         emit OwnershipTransferred(owner, pendingOwner);
         owner = pendingOwner;
@@ -277,7 +282,7 @@ contract Liquidator {
 
     bytes32 constant ORDER_TYPEHASH = 0x1b7987701aec5d914b7e2663640474d587fdf71bf8cf50a672b29ff7ddc7b557;
     bytes32 constant PARTY_TYPEHASH = 0xf7dd27dc10c7dbaecb34f7bf8396d9ce2f7972a5556959ec094912041b15e285;
-    bytes32 constant DOMAIN_TYPEHASH = 0x91ab3d17e3a50a9d89e63fd30b92be7f5336b03b287bb946787a83a9d62a2766;
+    //bytes32 constant DOMAIN_TYPEHASH = 0x91ab3d17e3a50a9d89e63fd30b92be7f5336b03b287bb946787a83a9d62a2766;
     bytes32 constant ZERO_PARTY_HASH = 0xb3df6f92b1402b8652ec14dde0ab8816789b2da8a6b0962109a31f4c72c625d2;
 
     function hashERC20Party(Party memory _party) internal pure returns (bytes32) {
