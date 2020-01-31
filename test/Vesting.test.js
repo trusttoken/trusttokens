@@ -32,6 +32,11 @@ contract('Vesting', function(accounts) {
             await assertRevert(this.vesting.transferOwnership(account1, {from:owner}))
             await assertRevert(this.vesting.claimOwnership({from:owner}))
         })
+        it('prevents claiming out of bounds', async function() {
+            await this.vesting.claimTokenOwnership({from: owner})
+            assertRevert(this.vesting.claim(0, {from: account1}))
+            assertRevert(this.vesting.deliver(0, account2, {from: account1}))
+        })
     })
     describe('claim', function() {
         it('claims token ownership', async function() {
@@ -141,6 +146,22 @@ contract('Vesting', function(accounts) {
             assert.equal(claim.logs[1].args.to, ZERO_ADDRESS)
             assert.equal(0, await this.vesting.balanceOf.call(account1))
             assert(ONE_HUNDRED.eq(await this.token.balanceOf.call(account1)), "100 not received")
+        })
+        it('can deliver to another account', async function() {
+            await this.vesting.claimTokenOwnership({from: owner})
+            let timestamp = parseInt(Date.now() / 1000);
+
+            const scheduled = await this.vesting.scheduleMint(account1, ONE_HUNDRED, timestamp, {from:owner})
+            const delivery = await this.vesting.deliver(0, account2, {from: account1})
+            assert.equal(2, delivery.logs.length)
+            assert.equal(delivery.logs[0].event, "MintClaimed")
+            assert.equal(delivery.logs[0].args.tokenId, 0)
+            assert.equal(delivery.logs[0].args.beneficiary, account2)
+            assert.equal(delivery.logs[1].event, "Transfer")
+            assert.equal(delivery.logs[1].args.from, account1)
+            assert.equal(delivery.logs[1].args.to, ZERO_ADDRESS)
+            assert.equal(0, await this.vesting.balanceOf.call(account2))
+            assert(ONE_HUNDRED.eq(await this.token.balanceOf.call(account2)), "100 not received")
         })
     })
 })
