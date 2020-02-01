@@ -5,10 +5,10 @@ import "./ValTokenWithHook.sol";
 
 contract TrustToken is ValTokenWithHook {
     function decimals() public pure returns (uint8) {
-        return 18;
+        return 8;
     }
     function rounding() public pure returns (uint8) {
-        return 18;
+        return 8;
     }
     function name() public pure returns (string memory) {
         return "TrustToken";

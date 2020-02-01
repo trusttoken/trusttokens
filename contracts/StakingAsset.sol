@@ -36,30 +36,33 @@ contract StakedToken is ValTokenWithHook {
     function rewardAsset() internal view returns (StakingAsset);
     function liquidator() internal view returns (address);
     uint256 constant MAX_UINT256 = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+    uint256 constant DEFAULT_RATIO = 2000;
 
     function initialize() internal {
         stakeAsset().approve(liquidator(), MAX_UINT256);
     }
 
     function _transferAllArgs(address _from, address _to, uint256 _value) internal resolveSender(_from) {
-        uint256 priorRewards = claimedRewardsPerStake[msg.sender];
-        uint256 resultBalance = _subBalance(_from, _value);
-        if (resultBalance == 0) {
+        uint256 fromRewards = claimedRewardsPerStake[msg.sender];
+        if (_subBalance(_from, _value) == 0) {
             claimedRewardsPerStake[msg.sender] = 0;
         }
         emit Transfer(_from, _to, _value);
-        bool hasHook;
-        address to;
-        (to, hasHook) = _resolveRecipient(_to);
+        (address to, bool hasHook) = _resolveRecipient(_to);
         if (_to != to) {
             emit Transfer(_to, to, _value);
         }
         uint256 priorBalance = _addBalance(to, _value);
-        if (priorBalance > _value) {
-            claimedRewardsPerStake[to] = (_value * priorRewards + priorBalance * claimedRewardsPerStake[to]) / (_value + priorBalance);
-        } else {
-            claimedRewardsPerStake[to] = cumulativeRewardsPerStake;
+        uint256 numerator = (_value * fromRewards + priorBalance * claimedRewardsPerStake[to]);
+        uint256 denominator = (_value + priorBalance);
+        uint256 result = numerator / denominator;
+        uint256 remainder = numerator % denominator;
+        if (remainder > 0) {
+            // remainder always less than denominator
+            rewardsRemainder = rewardsRemainder.add(denominator - remainder, "remainder overflow");
+            result += 1;
         }
+        claimedRewardsPerStake[to] = result;
         if (hasHook) {
             TrueCoinReceiver(to).tokenFallback(_from, _value);
         }
@@ -98,7 +101,15 @@ contract StakedToken is ValTokenWithHook {
             emit Transfer(_to, to, _value);
         }
         uint256 priorBalance = _addBalance(to, _value);
-        claimedRewardsPerStake[_to] = (cumulativeRewardsPerStake * _value + claimedRewardsPerStake[_to] * priorBalance) / (priorBalance + _value);
+        uint256 numerator = (cumulativeRewardsPerStake * _value + claimedRewardsPerStake[_to] * priorBalance);
+        uint256 denominator = (priorBalance + _value);
+        uint256 result = numerator / denominator;
+        uint256 remainder = numerator % denominator;
+        if (remainder > 0) {
+            rewardsRemainder = rewardsRemainder.add(denominator - remainder, "remainderOverflow");
+            result += 1;
+        }
+        claimedRewardsPerStake[_to] = result;
         totalSupply += _value;
         if (hook) {
             TrueCoinReceiver(to).tokenFallback(address(0x0), _value);
@@ -117,7 +128,7 @@ contract StakedToken is ValTokenWithHook {
         } else {
             // first staker
             require(totalSupply == 0, "pool drained");
-            stakeAmount = _amount * 2100;
+            stakeAmount = _amount * DEFAULT_RATIO;
         }
         _mint(_staker, stakeAmount);
     }
@@ -186,6 +197,6 @@ contract StakedToken is ValTokenWithHook {
         }
         claimedRewardsPerStake[msg.sender] = cumulativeRewardsPerStake;
         require(attributes[uint144(uint160(msg.sender) >> 20)] & ACCOUNT_KYC != 0, "please register at app.trusttoken.com");
-        require(rewardAsset().transferFrom(address(this), _destination, dueRewards));
+        require(rewardAsset().transfer(_destination, dueRewards));
     }
 }
