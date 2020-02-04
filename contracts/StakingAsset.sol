@@ -43,9 +43,9 @@ contract StakedToken is ValTokenWithHook {
     }
 
     function _transferAllArgs(address _from, address _to, uint256 _value) internal resolveSender(_from) {
-        uint256 fromRewards = claimedRewardsPerStake[msg.sender];
+        uint256 fromRewards = claimedRewardsPerStake[_from];
         if (_subBalance(_from, _value) == 0) {
-            claimedRewardsPerStake[msg.sender] = 0;
+            claimedRewardsPerStake[_from] = 0;
         }
         emit Transfer(_from, _to, _value);
         (address to, bool hasHook) = _resolveRecipient(_to);

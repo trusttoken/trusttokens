@@ -93,12 +93,45 @@ contract('StakedAsset', function(accounts) {
             // transfer unclaimed rewards
             const transfer = await this.pool.transfer(kycAccount, oneHundredStake, {from:oneHundred})
             assert.equal(0, await this.pool.unclaimedRewards.call(oneHundred))
-            console.log(await this.pool.unclaimedRewards.call(kycAccount))
             assert(BN(9).mul(ONE_ETHER).sub(await this.pool.unclaimedRewards.call(kycAccount)).lt(await this.pool.totalSupply.call()))
 
             const claim9 = await this.pool.claimRewards(kycAccount,{from:kycAccount})
             assert.equal(0, await this.pool.unclaimedRewards.call(kycAccount))
             assert(BN(11).mul(ONE_ETHER).sub(await this.rewardToken.balanceOf.call(kycAccount)).lt(await this.pool.totalSupply.call()))
+        })
+
+        it('preserves unclaimed rewards during additional staking and transfer to empty account', async function() {
+            // stake half
+            await this.stakeToken.transfer(this.pool.address, BN(50).mul(ONE_BITCOIN), {from: oneHundred})
+
+            assert(DEFAULT_RATIO.mul(BN(50).mul(ONE_BITCOIN)).eq(await this.pool.balanceOf.call(oneHundred)), 'pool balance')
+
+            // reward 1 TUSD
+            await this.rewardToken.transfer(this.pool.address, ONE_ETHER, {from:oneHundred})
+            assert(ONE_ETHER.eq(await this.pool.unclaimedRewards.call(oneHundred)))
+            assert(ONE_ETHER.eq(await this.rewardToken.balanceOf.call(this.pool.address)))
+
+            // stake other half
+            const stake = await this.stakeToken.transfer(this.pool.address, BN(50).mul(ONE_BITCOIN), {from: oneHundred})
+            assert(DEFAULT_RATIO.mul(ONE_HUNDRED_BITCOIN).eq(await this.pool.balanceOf.call(oneHundred)), 'pool balance')
+            assert(ONE_ETHER.eq(await this.pool.unclaimedRewards.call(oneHundred)))
+            assert(ONE_ETHER.eq(await this.rewardToken.balanceOf.call(this.pool.address)))
+            assert(ONE_HUNDRED_BITCOIN.eq(await this.stakeToken.balanceOf.call(this.pool.address)))
+
+            // transferFrom to kycAccount
+            await this.pool.approve(account2, DEFAULT_RATIO.mul(ONE_HUNDRED_BITCOIN), {from: oneHundred})
+            const transfer = await this.pool.transferFrom(oneHundred, kycAccount,DEFAULT_RATIO.mul(ONE_HUNDRED_BITCOIN), { from: account2})
+            assert(DEFAULT_RATIO.mul(ONE_HUNDRED_BITCOIN).eq(await this.pool.balanceOf.call(kycAccount)), 'pool balance')
+            assert(ONE_ETHER.eq(await this.pool.unclaimedRewards.call(kycAccount)), 'unclaimed rewards transfer')
+            assert.equal(0, await this.pool.unclaimedRewards.call(oneHundred))
+
+            // claim
+            await this.pool.claimRewards(account1, {from:kycAccount})
+            assert.equal(0, await this.pool.unclaimedRewards.call(account1))
+            assert.equal(0, await this.pool.unclaimedRewards.call(oneHundred))
+            assert.equal(0, await this.pool.unclaimedRewards.call(kycAccount))
+            assert.equal(0, await this.rewardToken.balanceOf.call(this.pool.address))
+            assert(ONE_ETHER.eq(await this.rewardToken.balanceOf.call(account1)))
         })
     })
 })
