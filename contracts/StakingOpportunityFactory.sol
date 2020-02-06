@@ -15,6 +15,7 @@ contract StakingOpportunityFactory {
 
     constructor(Registry _registry, address /*StakedTokenProxyImplementation*/ _implementation) public {
         owner = msg.sender;
+        emit OwnershipTransferred(address(0), owner);
         registry = _registry;
         migrations.push(_implementation);
         upgradeCalls.push("");

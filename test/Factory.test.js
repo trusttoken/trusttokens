@@ -43,8 +43,8 @@ contract('StakingOpportunityFactory', function(accounts) {
     describe('createStakingOpportunity', function() {
         it('creates staking opportunity', async function() {
             const created = await this.factory.createStakingOpportunity(this.stakeToken.address, this.rewardToken.address, fakeLiquidator)
-            assert.equal(created.logs[1].event, "StakingOpportunity")
-            const stakingOpportunityAddress = created.logs[1].args.opportunity
+            assert.equal(created.logs[0].event, "StakingOpportunity")
+            const stakingOpportunityAddress = created.logs[0].args.opportunity
             const stakingOpportunity = await StakedToken.at(stakingOpportunityAddress)
 
             await this.stakeToken.transfer(stakingOpportunity.address, ONE_HUNDRED_BITCOIN, {from:oneHundred})
@@ -56,7 +56,7 @@ contract('StakingOpportunityFactory', function(accounts) {
             await stakingOpportunity.transfer(kycAccount, ONE_HUNDRED_BITCOIN.mul(DEFAULT_RATIO), { from: oneHundred})
             await stakingOpportunity.claimRewards(kycAccount, {from:kycAccount})
             assert(ONE_HUNDRED_ETHER.sub(await this.rewardToken.balanceOf.call(kycAccount)).lt(await stakingOpportunity.totalSupply.call()))
-            assert.equal(await stakingOpportunity.owner.call(), this.factory.address)
+            assert.equal(await stakingOpportunity.owner.call(), ZERO_ADDRESS)
             assert.equal(await stakingOpportunity.pendingOwner.call(), ZERO_ADDRESS)
         })
     })

@@ -1,8 +1,8 @@
 pragma solidity ^0.5.13;
 
-import "./ClaimableContract.sol";
+import "./ProxyStorage.sol";
 
-contract RegistrySubscriber is ClaimableContract {
+contract RegistrySubscriber is ProxyStorage {
     // Registry Attributes
     bytes32 constant PASSED_KYCAML = "hasPassedKYC/AML";
     bytes32 constant IS_DEPOSIT_ADDRESS = "isDepositAddress";

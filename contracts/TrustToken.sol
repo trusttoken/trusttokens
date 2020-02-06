@@ -1,9 +1,10 @@
 pragma solidity ^0.5.13;
 
+import "./ClaimableContract.sol";
 import "./ValTokenWithHook.sol";
 
 
-contract TrustToken is ValTokenWithHook {
+contract TrustToken is ValTokenWithHook, ClaimableContract {
     function decimals() public pure returns (uint8) {
         return 8;
     }

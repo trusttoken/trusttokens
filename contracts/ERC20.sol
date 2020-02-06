@@ -1,6 +1,6 @@
 pragma solidity ^0.5.13;
 
-import "./ClaimableContract.sol";
+import "./ProxyStorage.sol";
 import "./ValSafeMath.sol";
 
 
@@ -9,7 +9,7 @@ import "./ValSafeMath.sol";
  * @title Basic token
  * @dev Basic version of StandardToken, with no allowances.
  */
-contract ModularBasicToken is ClaimableContract {
+contract ModularBasicToken is ProxyStorage {
     using ValSafeMath for uint256;
 
     event Transfer(address indexed from, address indexed to, uint256 value);
