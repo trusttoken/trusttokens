@@ -10,6 +10,14 @@ import "./ProxyStorage.sol";
  */
 contract ClaimableContract is ProxyStorage {
 
+    function owner() public view returns (address) {
+        return owner_;
+    }
+
+    function pendingOwner() public view returns (address) {
+        return pendingOwner_;
+    }
+
     event OwnershipTransferred(
         address indexed previousOwner,
         address indexed newOwner
@@ -20,15 +28,15 @@ contract ClaimableContract is ProxyStorage {
     * at construction. Must then be reinitialized 
     */
     constructor() public {
-        owner = msg.sender;
-        emit OwnershipTransferred(address(0), owner);
+        owner_ = msg.sender;
+        emit OwnershipTransferred(address(0), msg.sender);
     }
 
     /**
     * @dev Throws if called by any account other than the owner.
     */
     modifier onlyOwner() {
-        require(msg.sender == owner, "only owner");
+        require(msg.sender == owner_, "only owner");
         _;
     }
 
@@ -36,7 +44,7 @@ contract ClaimableContract is ProxyStorage {
     * @dev Modifier throws if called by any account other than the pendingOwner.
     */
     modifier onlyPendingOwner() {
-        require(msg.sender == pendingOwner);
+        require(msg.sender == pendingOwner_);
         _;
     }
 
@@ -45,15 +53,16 @@ contract ClaimableContract is ProxyStorage {
     * @param newOwner The address to transfer ownership to.
     */
     function transferOwnership(address newOwner) public onlyOwner {
-        pendingOwner = newOwner;
+        pendingOwner_ = newOwner;
     }
 
     /**
     * @dev Allows the pendingOwner address to finalize the transfer.
     */
     function claimOwnership() public onlyPendingOwner {
-        emit OwnershipTransferred(owner, pendingOwner);
-        owner = pendingOwner;
-        pendingOwner = address(0);
+        address _pendingOwner = pendingOwner_;
+        emit OwnershipTransferred(owner_, _pendingOwner);
+        owner_ = _pendingOwner;
+        pendingOwner_ = address(0);
     }
 }

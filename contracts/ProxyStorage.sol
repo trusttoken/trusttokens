@@ -8,15 +8,14 @@ import "../true-currencies/registry/contracts/Registry.sol";
  * Never remove items from this list
  */
 contract ProxyStorage {
-    address public owner;
-    address public pendingOwner;
-
     uint256 public totalSupply;
 
     mapping (address => uint256) public balanceOf;
     mapping (address => mapping (address => uint256)) public allowance;
     mapping (uint144 => uint256) attributes; // see RegistrySubscriber
 
+    address owner_;
+    address pendingOwner_;
 
     /* Additionally, we have several keccak-based storage locations.
      * If you add more keccak-based storage mappings, such as mappings, you must document them here.
@@ -30,8 +29,8 @@ contract ProxyStorage {
      ** 19         "trueXXX.proxy.owner"                                         Proxy Owner
      ** 27         "trueXXX.pending.proxy.owner"                                 Pending Proxy Owner
      ** 28         "trueXXX.proxy.implementation"                                Proxy Implementation
-     ** 64         uint256(address),uint256(4)                                  balanceOf
-     ** 64         uint256(address),keccak256(uint256(address),uint256(5))      allowance
-     ** 64         uint256(address),keccak256(bytes32,uint256(6))               attributes
+     ** 64         uint256(address),uint256(1)                                   balanceOf
+     ** 64         uint256(address),keccak256(uint256(address),uint256(2))       allowance
+     ** 64         uint256(address),keccak256(bytes32,uint256(3))                attributes
     **/
 }
