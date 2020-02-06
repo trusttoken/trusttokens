@@ -20,6 +20,7 @@ const ONE_HUNDRED_ETHER = BN(100).mul(ONE_ETHER)
 const ONE_BITCOIN = BN(1e8)
 const ONE_HUNDRED_BITCOIN = BN(100).mul(ONE_BITCOIN)
 const DEFAULT_RATIO = BN(2000);
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 
 contract('StakingOpportunityFactory', function(accounts) {
@@ -35,15 +36,49 @@ contract('StakingOpportunityFactory', function(accounts) {
         this.implementation = await StakedTokenProxyImplementation.new()
         this.factory = await StakingOpportunityFactory.new(this.registry.address, this.implementation.address)
         await this.registry.setAttributeValue(this.factory.address, writeAttributeFor(IS_REGISTERED_CONTRACT), 1, {from:owner})
-    })
-    describe('syncAttributeValues', function() {
-        it('syncs attribute value', async function() {
-            const created = await this.factory.createStakingOpportunity(this.stakeToken.address, this.rewardToken.address, fakeLiquidator);
-            console.log(created.logs)
-            //await this.factory.syncAttributeValues(PASSED_KYCAML, [
-        })
+        await this.registry.subscribe(IS_REGISTERED_CONTRACT, this.stakeToken.address, {from:owner})
+        await this.registry.subscribe(IS_REGISTERED_CONTRACT, this.rewardToken.address, {from:owner})
     })
     describe('createStakingOpportunity', function() {
-        // TODO
+        it('creates staking opportunity', async function() {
+            const created = await this.factory.createStakingOpportunity(this.stakeToken.address, this.rewardToken.address, fakeLiquidator)
+            assert.equal(created.logs[1].event, "StakingOpportunity")
+            const stakingOpportunityAddress = created.logs[1].args.opportunity
+            const stakingOpportunity = await StakedToken.at(stakingOpportunityAddress)
+
+            await this.stakeToken.transfer(stakingOpportunity.address, ONE_HUNDRED_BITCOIN, {from:oneHundred})
+            assert(ONE_HUNDRED_BITCOIN.eq(await this.stakeToken.balanceOf.call(stakingOpportunity.address)))
+            assert(ONE_HUNDRED_BITCOIN.mul(DEFAULT_RATIO).eq(await stakingOpportunity.totalSupply.call()))
+
+            await this.rewardToken.transfer(stakingOpportunity.address, ONE_HUNDRED_ETHER, {from:oneHundred})
+            await this.factory.syncAttributeValues(PASSED_KYCAML, [kycAccount], [stakingOpportunity.address])
+            await stakingOpportunity.transfer(kycAccount, ONE_HUNDRED_BITCOIN.mul(DEFAULT_RATIO), { from: oneHundred})
+            await stakingOpportunity.claimRewards(kycAccount, {from:kycAccount})
+            assert(ONE_HUNDRED_ETHER.sub(await this.rewardToken.balanceOf.call(kycAccount)).lt(await stakingOpportunity.totalSupply.call()))
+        })
+    })
+    describe('createProxyStakingOpportunity', function() {
+        it('creates proxy staking opportunity', async function() {
+            const created = await this.factory.createProxyStakingOpportunity(this.stakeToken.address, this.rewardToken.address, fakeLiquidator)
+            assert.equal(created.logs[0].event, "StakingOpportunity")
+            const stakingOpportunityAddress = created.logs[0].args.opportunity
+            const stakingOpportunity = await StakedToken.at(stakingOpportunityAddress)
+
+            await this.stakeToken.transfer(stakingOpportunity.address, ONE_HUNDRED_BITCOIN, {from:oneHundred})
+            assert(ONE_HUNDRED_BITCOIN.eq(await this.stakeToken.balanceOf.call(stakingOpportunity.address)))
+            assert(ONE_HUNDRED_BITCOIN.mul(DEFAULT_RATIO).eq(await stakingOpportunity.totalSupply.call()))
+
+            await this.rewardToken.transfer(stakingOpportunity.address, ONE_HUNDRED_ETHER, {from:oneHundred})
+            await this.factory.syncAttributeValues(PASSED_KYCAML, [kycAccount], [stakingOpportunity.address])
+            await stakingOpportunity.transfer(kycAccount, ONE_HUNDRED_BITCOIN.mul(DEFAULT_RATIO), { from: oneHundred})
+            await stakingOpportunity.claimRewards(kycAccount, {from:kycAccount})
+            assert(ONE_HUNDRED_ETHER.sub(await this.rewardToken.balanceOf.call(kycAccount)).lt(await stakingOpportunity.totalSupply.call()))
+
+            // proxy
+            const stakingProxy = await OwnedUpgradeabilityProxy.at(stakingOpportunityAddress)
+            assert.equal(await stakingProxy.proxyOwner.call(), this.factory.address)
+            assert.equal(await stakingProxy.pendingProxyOwner.call(), ZERO_ADDRESS)
+            assert.equal(await stakingProxy.implementation.call(), this.implementation.address)
+        })
     })
 })

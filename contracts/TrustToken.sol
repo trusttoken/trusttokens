@@ -16,4 +16,8 @@ contract TrustToken is ValTokenWithHook {
     function symbol() public pure returns (string memory) {
         return "TRUST";
     }
+
+    function mint(address _to, uint256 _amount) external onlyOwner {
+        _mint(_to, _amount);
+    }
 }
