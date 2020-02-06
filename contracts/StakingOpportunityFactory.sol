@@ -14,6 +14,7 @@ contract StakingOpportunityFactory {
     bytes32 constant IS_REGISTERED_CONTRACT = "isRegisteredContract";
 
     constructor(Registry _registry, address /*StakedTokenProxyImplementation*/ _implementation) public {
+        owner = msg.sender;
         registry = _registry;
         migrations.push(_implementation);
         upgradeCalls.push("");

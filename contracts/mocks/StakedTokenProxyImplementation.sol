@@ -33,3 +33,11 @@ contract StakedTokenProxyImplementation is StakedToken {
         return liquidator_;
     }
 }
+
+contract StakedTokenProxyMigrationMock is StakedTokenProxyImplementation {
+    uint256 public importantNumber;
+    function onUpgrade(uint256 _importantNumber) external {
+        require(importantNumber == 0, "already migrated");
+        importantNumber = _importantNumber;
+    }
+}
