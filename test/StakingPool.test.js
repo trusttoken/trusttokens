@@ -1,5 +1,4 @@
 const Registry = artifacts.require('RegistryMock')
-//const WhitelistedFungibleToken = artifacts.require('WhitelistedFungibleToken')
 const StakedToken = artifacts.require('MockStakedToken')
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy')
 const TrustToken = artifacts.require('MockTrustToken')
