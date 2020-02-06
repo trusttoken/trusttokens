@@ -54,6 +54,8 @@ contract('StakingOpportunityFactory', function(accounts) {
             await stakingOpportunity.transfer(kycAccount, ONE_HUNDRED_BITCOIN.mul(DEFAULT_RATIO), { from: oneHundred})
             await stakingOpportunity.claimRewards(kycAccount, {from:kycAccount})
             assert(ONE_HUNDRED_ETHER.sub(await this.rewardToken.balanceOf.call(kycAccount)).lt(await stakingOpportunity.totalSupply.call()))
+            assert.equal(await stakingOpportunity.owner.call(), this.factory.address)
+            assert.equal(await stakingOpportunity.pendingOwner.call(), ZERO_ADDRESS)
         })
     })
     describe('createProxyStakingOpportunity', function() {
@@ -72,6 +74,8 @@ contract('StakingOpportunityFactory', function(accounts) {
             await stakingOpportunity.transfer(kycAccount, ONE_HUNDRED_BITCOIN.mul(DEFAULT_RATIO), { from: oneHundred})
             await stakingOpportunity.claimRewards(kycAccount, {from:kycAccount})
             assert(ONE_HUNDRED_ETHER.sub(await this.rewardToken.balanceOf.call(kycAccount)).lt(await stakingOpportunity.totalSupply.call()))
+            assert.equal(await stakingOpportunity.owner.call(), ZERO_ADDRESS)
+            assert.equal(await stakingOpportunity.pendingOwner.call(), ZERO_ADDRESS)
 
             // proxy
             const stakingProxy = await OwnedUpgradeabilityProxy.at(stakingOpportunityAddress)
