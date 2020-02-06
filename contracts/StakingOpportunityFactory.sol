@@ -11,6 +11,8 @@ contract StakingOpportunityFactory {
     /*StakedTokenProxyImplementation*/ address public implementation;
     bytes public upgradeCall;
 
+    bytes32 constant IS_REGISTERED_CONTRACT = "isRegisteredContract";
+
     constructor(Registry _registry, address /*StakedTokenProxyImplementation*/ _implementation) public {
         registry = _registry;
         implementation = _implementation;
@@ -22,6 +24,7 @@ contract StakingOpportunityFactory {
  
     function createStakingOpportunity(StakingAsset _stakeAsset, StakingAsset _rewardAsset, address _liquidator) external returns (StakedToken) {
         StakedToken result = new MockStakedToken(_stakeAsset, _rewardAsset, Registry(address(this)), _liquidator);
+        registry.setAttributeValue(address(result), IS_REGISTERED_CONTRACT, 1);
         emit StakingOpportunity(result, false);
         return result;
     }
@@ -31,11 +34,18 @@ contract StakingOpportunityFactory {
         proxy.upgradeTo(implementation);
         StakedTokenProxyImplementation(address(proxy)).initialize(_stakeAsset, _rewardAsset, Registry(address(this)), _liquidator);
 
+        registry.setAttributeValue(address(proxy), IS_REGISTERED_CONTRACT, 1);
         return StakedToken(address(proxy));
     }
 
-    function syncAttributeValue(RegistrySubscriber subscriber, address account, bytes32 attribute) external {
-        subscriber.syncAttributeValue(account, attribute, registry.getAttributeValue(account, attribute));
+    function syncAttributeValues(bytes32 attribute, address[] calldata accounts, RegistrySubscriber[] calldata subscribers) external {
+        for (uint256 i = subscribers.length; i --> 0;) {
+            RegistrySubscriber subscriber = subscribers[i];
+            for (uint256 j = accounts.length; j --> 0; ) {
+                address account = accounts[j];
+                subscriber.syncAttributeValue(account, attribute, registry.getAttributeValue(account, attribute));
+            }
+        }
     }
 
     function setDefaultImplementation(address _implementation, bytes calldata _upgradeCall) onlyOwner external {
