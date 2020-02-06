@@ -67,9 +67,6 @@ contract ValTokenWithHook is IERC20, ModularStandardToken, RegistrySubscriber {
         totalSupply = resultSupply_;
     }
 
-    function mint(address _to, uint256 _amount) external onlyOwner {
-        _mint(_to, _amount);
-    }
     function _mint(address _to, uint256 _value) internal {
         emit Transfer(address(0), _to, _value);
         emit Mint(_to, _value);
