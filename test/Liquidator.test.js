@@ -63,6 +63,7 @@ contract('Liquidator', function(accounts) {
         let expiry = parseInt(Date.now() / 1000) + 12000
         it('prevents non-owner from reclaiming', async function() {
             await assertRevert(this.liquidator.reclaim(approvedBeneficiary, ONE_HUNDRED), {from:account2})
+            await assertRevert(this.liquidator.reclaimStake(approvedBeneficiary, ONE_HUNDRED), {from:account2})
         })
         it('prevents non-approved beneficiary', async function() {
             await assertRevert(this.liquidator.reclaim(account2, ONE_HUNDRED, {from:owner}))
