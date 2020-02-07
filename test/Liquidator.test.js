@@ -105,6 +105,21 @@ contract('Liquidator', function(accounts) {
             await assertRevert(this.liquidator.registerAirswap(order.web3Tuple))
         })
     })
+    describe('reclaimStake', function() {
+        const stakeAmount = ONE_HUNDRED.div(BN(4))
+        beforeEach(async function() {
+            await this.stakeToken.transfer(fakePool, stakeAmount, {from: oneHundred})
+        })
+        it('reclaims and redeposits stake', async function() {
+            await this.liquidator.reclaimStake(approvedBeneficiary, stakeAmount, {from:owner})
+            assert(stakeAmount.eq(await this.stakeToken.balanceOf.call(approvedBeneficiary)))
+
+            await this.stakeToken.approve(this.liquidator.address, stakeAmount, {from:approvedBeneficiary})
+
+            await this.liquidator.returnStake(approvedBeneficiary, stakeAmount)
+            assert(stakeAmount.eq(await this.stakeToken.balanceOf.call(fakePool)))
+        })
+    })
     describe('Airswap', function() {
         let nonce = 0
         let expiry = parseInt(Date.now() / 1000) + 12000
