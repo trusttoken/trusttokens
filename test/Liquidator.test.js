@@ -62,13 +62,14 @@ contract('Liquidator', function(accounts) {
         let nonce = 0
         let expiry = parseInt(Date.now() / 1000) + 12000
         it('prevents non-owner from reclaiming', async function() {
-            await assertRevert(this.liquidator.reclaim(ONE_HUNDRED, approvedBeneficiary), {from:account2})
+            await assertRevert(this.liquidator.reclaim(approvedBeneficiary, ONE_HUNDRED), {from:account2})
+            await assertRevert(this.liquidator.reclaimStake(approvedBeneficiary, ONE_HUNDRED), {from:account2})
         })
         it('prevents non-approved beneficiary', async function() {
-            await assertRevert(this.liquidator.reclaim(ONE_HUNDRED, account2, {from:owner}))
+            await assertRevert(this.liquidator.reclaim(account2, ONE_HUNDRED, {from:owner}))
         })
         it('prevents liquidation of zero', async function() {
-            await assertRevert(this.liquidator.reclaim(BN(0), approvedBeneficiary, {from:owner}))
+            await assertRevert(this.liquidator.reclaim(approvedBeneficiary, BN(0), {from:owner}))
         })
         it('prevents registering orders with non-airswap validator', async function() {
             await this.stakeToken.transfer(fakePool, BN(100), {from: oneHundred})
@@ -102,6 +103,21 @@ contract('Liquidator', function(accounts) {
             await order.sign()
             order.s = '5555555555555555555555555555555555555555555555555555555555555555'
             await assertRevert(this.liquidator.registerAirswap(order.web3Tuple))
+        })
+    })
+    describe('reclaimStake', function() {
+        const stakeAmount = ONE_HUNDRED.div(BN(4))
+        beforeEach(async function() {
+            await this.stakeToken.transfer(fakePool, stakeAmount, {from: oneHundred})
+        })
+        it('reclaims and redeposits stake', async function() {
+            await this.liquidator.reclaimStake(approvedBeneficiary, stakeAmount, {from:owner})
+            assert(stakeAmount.eq(await this.stakeToken.balanceOf.call(approvedBeneficiary)))
+
+            await this.stakeToken.approve(this.liquidator.address, stakeAmount, {from:approvedBeneficiary})
+
+            await this.liquidator.returnStake(approvedBeneficiary, stakeAmount)
+            assert(stakeAmount.eq(await this.stakeToken.balanceOf.call(fakePool)))
         })
     })
     describe('Airswap', function() {
@@ -185,7 +201,7 @@ contract('Liquidator', function(accounts) {
             await this.stakeToken.transfer(account2, await this.stakeToken.balanceOf(oneHundred), {from: oneHundred})
             assert.equal(orderInfo.senderAmount, await this.stakeToken.balanceOf(fakePool))
             assert.equal(orderInfo.signerAmount, await this.rewardToken.balanceOf(oneHundred))
-            let reclaimed = await this.liquidator.reclaim(orderInfo.signerAmount, approvedBeneficiary, {from:owner})
+            let reclaimed = await this.liquidator.reclaim(approvedBeneficiary, orderInfo.signerAmount, {from:owner})
             assert.equal(reclaimed.logs.length, 2, "Fill and Liquidated")
             let fillEvent = reclaimed.logs[0]
             assert.equal(fillEvent.event, "Fill")
@@ -208,7 +224,7 @@ contract('Liquidator', function(accounts) {
             const trade = await this.liquidator.head.call()
             assert.equal(registration.logs[0].args.order, trade)
             await this.rewardToken.transfer(account2, ONE_HUNDRED, {from:oneHundred})
-            const reclaimed = await this.liquidator.reclaim(ONE_HUNDRED, approvedBeneficiary, {from:owner})
+            const reclaimed = await this.liquidator.reclaim(approvedBeneficiary, ONE_HUNDRED, {from:owner})
             assert.equal(3, reclaimed.logs.length, "Cancel, LiquidationError, and Liquidated")
             let cancelEvent = reclaimed.logs[0]
             assert.equal(cancelEvent.event, "Cancel")
@@ -454,7 +470,7 @@ contract('Liquidator', function(accounts) {
     describe('UniswapV1', function() {
         it('Liquidates all stake', async function() {
             await this.stakeToken.transfer(fakePool, ONE_HUNDRED, {from: oneHundred})
-            let reclaimed = await this.liquidator.reclaim(ONE_HUNDRED, approvedBeneficiary, {from:owner})
+            let reclaimed = await this.liquidator.reclaim(approvedBeneficiary, ONE_HUNDRED, {from:owner})
             assert.equal(reclaimed.logs.length, 1, "only one liquidation")
             assert.equal(reclaimed.logs[0].event, "Liquidated")
             assert(reclaimed.logs[0].args.stakeAmount.eq(ONE_HUNDRED), "all stake liquidated")
@@ -467,7 +483,7 @@ contract('Liquidator', function(accounts) {
             await this.stakeToken.transfer(fakePool, ONE_HUNDRED, {from: oneHundred})
             const debt = BN("33233233333634234806")
             const expectedStakeLiquidated = BN("0x56bc75e2d630ff468")
-            let reclaimed = await this.liquidator.reclaim(debt, approvedBeneficiary, {from:owner})
+            let reclaimed = await this.liquidator.reclaim(approvedBeneficiary, debt, {from:owner})
             assert.equal(reclaimed.logs.length, 1, "only one liquidation")
             assert.equal(reclaimed.logs[0].event, "Liquidated")
             assert(reclaimed.logs[0].args.debtAmount.eq(debt), "debt filled")

@@ -22,7 +22,7 @@ contract StakingOpportunityFactory {
     }
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-    event StakingOpportunity(StakedToken indexed opportunity, bool upgradeable);
+    event StakingOpportunity(StakedToken indexed opportunity, bool indexed upgradeable);
     event UpgradeFailure(address indexed proxy, address indexed priorImplementation, address indexed nextImplementation, bytes failure);
  
     function migrationCount() public view returns (uint256) {
