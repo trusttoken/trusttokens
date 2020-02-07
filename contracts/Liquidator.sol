@@ -140,7 +140,19 @@ contract Liquidator {
         return next[address(0)];
     }
 
-    function reclaim(int256 _debt, address _destination) external onlyOwner {
+    function reclaimStake(address _destination, uint256 _stake) external onlyOwner {
+        require(attributes[_destination] & LIQUIDATOR_CAN_RECEIVE != 0, "unregistered recipient");
+        stakeToken().transferFrom(pool(), _destination, _stake);
+    }
+
+    /**
+     * Put stake in pool without being credited for it
+    */
+    function returnStake(address _from, uint256 balance) external {
+        stakeToken().transferFrom(_from, pool(), balance);
+    }
+
+    function reclaim(address _destination, int256 _debt) external onlyOwner {
         require(_debt > 0, "Must reclaim positive amount");
         require(_debt < int256(MAX_UINT128), "reclaim amount too large");
         require(attributes[_destination] & LIQUIDATOR_CAN_RECEIVE != 0, "unregistered recipient");

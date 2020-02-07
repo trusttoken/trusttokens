@@ -29,9 +29,7 @@ contract MultisigLiquidator {
         require(_owners[0] != _owners[2], "first and last owners match");
         owners[0] = _owners[0];
         owners[1] = _owners[1];
-        owners[2] = _owners[2];
-    }
-
+        owners[2] = _owners[2]; } 
     function liquidator() internal view returns (Liquidator);
     event Action(uint256 indexed nonce, address indexed owner1, address indexed owner2, bytes action);
 
@@ -105,8 +103,12 @@ contract MultisigLiquidator {
         return result;
     }
 
-    function reclaim(int256 _debt, address _destination, bytes[2] memory signatures) public returns (bytes memory) {
-        return liquidatorCall(abi.encodeWithSignature("reclaim(int256,address)", _debt, _destination), signatures);
+    function reclaim(address _destination, int256 _debt, bytes[2] memory signatures) public returns (bytes memory) {
+        return liquidatorCall(abi.encodeWithSignature("reclaim(address,int256)", _destination, _debt), signatures);
+    }
+
+    function reclaimStake(address _destination, uint256 _stake, bytes[2] memory signatures) public returns (bytes memory) {
+        return liquidatorCall(abi.encodeWithSignature("reclaimStake(address,uint256)", _destination, _stake), signatures);
     }
 
     function claimOwnership(bytes[2] memory signatures) public returns (bytes memory) {
