@@ -11,7 +11,6 @@ import "wjm-airswap-swap/contracts/Swap.sol";
 interface TradeExecutor {
 }
 
-
 interface UniswapV1 {
     function tokenToExchangeSwapInput(uint256 tokensSold, uint256 minTokensBought, uint256 minEthBought, uint256 deadline, UniswapV1 exchangeAddress) external returns (uint256 tokensBought);
     function tokenToExchangeTransferInput(uint256 tokensSold, uint256 minTokensBought, uint256 minEthBought, uint256 deadline, address recipient, UniswapV1 exchangeAddress) external returns (uint256 tokensBought);
@@ -32,8 +31,7 @@ contract Liquidator {
     mapping (address => bytes32) domainSeparators;
     /**
         We DELEGATECALL into orders to invoke them
-        orders execute and return some amount or zero
-        Invariant: orders are sorted by greatest output amount
+        Invariant: orders are sorted by greatest price
     */
     // sorted singly-linked list
     mapping (/* TradeExecutor */ address => TradeExecutor) public next;
@@ -301,6 +299,13 @@ contract Liquidator {
         return keccak256(abi.encode(PARTY_TYPEHASH, ERC20_KIND, _party.wallet, _party.token, _party.amount, _party.id));
     }
 
+    function validAirswapSignatory(Swap validator, address signer, address signatory) internal view returns (bool) {
+        if (signatory == signer) {
+            return true;
+        }
+        return validator.signerAuthorizations(signer, signatory);
+    }
+
     function validAirswapSignature(Order memory _order) internal view returns (bool) {
         bytes32 hash = keccak256(abi.encodePacked(EIP191_HEADER, domainSeparators[_order.signature.validator], keccak256(abi.encode(ORDER_TYPEHASH, _order.nonce, _order.expiry, hashERC20Party(_order.signer), hashERC20Party(_order.sender), ZERO_PARTY_HASH))));
         if (_order.signature.version == 0x45) {
@@ -335,6 +340,7 @@ contract Liquidator {
         require(validator.signerMinimumNonce(_order.signer.wallet) <= _order.nonce, "signer minimum nonce is higher");
         require(validator.signerNonceStatus(_order.signer.wallet, _order.nonce) == AIRSWAP_AVAILABLE, "signer nonce unavailable");
         require(validAirswapSignature(_order), "signature invalid");
+        require(validAirswapSignatory(Swap(_order.signature.validator), _order.signer.wallet, _order.signature.signatory), "signatory invalid");
         /*
             Create an order contract with the bytecode to call the validator with the supplied args
             During execution this liquidator will delegatecall into the order contract
@@ -390,11 +396,12 @@ contract Liquidator {
             FlatOrder memory currInfo = airswapOrderInfo(curr);
             // no need to check overflow because multiplying unsigned values under 16 bytes results in an unsigned value under 32 bytes
             if (currInfo.signerAmount * _order.sender.amount < currInfo.senderAmount * _order.signer.amount) {
-                require(poolBalance >= _order.sender.amount, "insufficent remaining pool balance");
+                //require(poolBalance >= _order.sender.amount, "insufficent remaining pool balance");
                 next[address(orderContract)] = curr;
-                next[prev] = orderContract;
-                emit LimitOrder(orderContract);
-                return orderContract;
+                //next[prev] = orderContract;
+                //emit LimitOrder(orderContract);
+                //return orderContract;
+                break;
             }
             poolBalance -= currInfo.senderAmount;
             prev = address(curr);
@@ -426,6 +433,9 @@ contract Liquidator {
             return true;
         }
         if (Swap(_order.validator).signerMinimumNonce(_order.signerWallet) > _order.nonce) {
+            return true;
+        }
+        if (!validAirswapSignatory(Swap(_order.validator), _order.signerWallet, _order.signatory)) {
             return true;
         }
         return false;
