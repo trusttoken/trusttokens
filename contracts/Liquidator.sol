@@ -396,11 +396,7 @@ contract Liquidator {
             FlatOrder memory currInfo = airswapOrderInfo(curr);
             // no need to check overflow because multiplying unsigned values under 16 bytes results in an unsigned value under 32 bytes
             if (currInfo.signerAmount * _order.sender.amount < currInfo.senderAmount * _order.signer.amount) {
-                //require(poolBalance >= _order.sender.amount, "insufficent remaining pool balance");
                 next[address(orderContract)] = curr;
-                //next[prev] = orderContract;
-                //emit LimitOrder(orderContract);
-                //return orderContract;
                 break;
             }
             poolBalance -= currInfo.senderAmount;
