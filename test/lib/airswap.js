@@ -75,6 +75,7 @@ class Order {
             token: takerTokenAddress,
         }
         this.affiliate = ZERO_PARTY
+        this.signatory = this.signer.wallet
     }
     get signingData() {
         return ('0x1901' +
@@ -85,8 +86,11 @@ class Order {
     get signingHash() {
         return web3.utils.sha3(this.signingData)
     }
-    async sign() {
-        const sig = await web3.eth.sign(this.signingHash, this.signer.wallet)
+    async sign(signatory) {
+        if (signatory) {
+            this.signatory = signatory
+        }
+        const sig = await web3.eth.sign(this.signingHash, this.signatory)
         this.r = sig.slice(2, 66)
         this.s = sig.slice(66, 130)
         assert(parseInt(this.s.slice(0,1)) < 8)
@@ -113,7 +117,7 @@ class Order {
             canonicalParty(this.signer) + 
             canonicalParty(this.sender) +
             canonicalParty(this.affiliate) +
-            addressBytes32(this.signer.wallet) +
+            addressBytes32(this.signatory) +
             addressBytes32(this.verifyingContract) +
             uint256Bytes32(SIG191_VERSION) +
             uint256Bytes32(this.v) +
@@ -147,7 +151,7 @@ class Order {
                 0
             ],
             [
-                this.signer.wallet,
+                this.signatory,
                 this.verifyingContract,
                 SIG191_VERSION,
                 this.v,
