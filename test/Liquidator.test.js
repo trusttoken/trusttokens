@@ -50,7 +50,8 @@ contract('Liquidator', function(accounts) {
         await this.rewardToken.mint(oneHundred, ONE_HUNDRED, {from:issuer});
         await this.stakeToken.mint(oneHundred, ONE_HUNDRED, {from:issuer});
         this.airswap = await Airswap.new(this.transferHandlerRegistry.address, {from: owner})
-        this.liquidator = await Liquidator.new(fakePool, this.registry.address, this.rewardToken.address, this.stakeToken.address, this.outputUniswap.address, this.stakeUniswap.address, {from: owner})
+        this.liquidator = await Liquidator.new(this.registry.address, this.rewardToken.address, this.stakeToken.address, this.outputUniswap.address, this.stakeUniswap.address, {from: owner})
+        await this.liquidator.setPool(fakePool, {from:owner})
         await this.registry.subscribe(AIRSWAP_VALIDATOR, this.liquidator.address, {from: owner})
         await this.registry.subscribe(APPROVED_BENEFICIARY, this.liquidator.address, {from: owner})
         await this.registry.setAttributeValue(this.airswap.address, AIRSWAP_VALIDATOR, hashDomain(this.airswap.address), {from: owner})

@@ -51,14 +51,14 @@ contract('MultisigLiquidator', function(accounts) {
         await this.rewardToken.mint(oneHundred, ONE_HUNDRED, {from:issuer});
         await this.stakeToken.mint(oneHundred, ONE_HUNDRED, {from:issuer});
         this.airswap = await Airswap.new(this.transferHandlerRegistry.address, {from: owner})
-        this.liquidator = await Liquidator.new(fakePool, this.registry.address, this.rewardToken.address, this.stakeToken.address, this.outputUniswap.address, this.stakeUniswap.address, {from: owner})
+        this.liquidator = await Liquidator.new(this.registry.address, this.rewardToken.address, this.stakeToken.address, this.outputUniswap.address, this.stakeUniswap.address, {from: owner})
+        await this.liquidator.setPool(fakePool, {from:owner})
         await this.registry.subscribe(AIRSWAP_VALIDATOR, this.liquidator.address, {from: owner})
         await this.registry.subscribe(APPROVED_BENEFICIARY, this.liquidator.address, {from: owner})
         await this.registry.setAttributeValue(this.airswap.address, AIRSWAP_VALIDATOR, hashDomain(this.airswap.address), {from: owner})
         await this.registry.setAttributeValue(approvedBeneficiary, APPROVED_BENEFICIARY, 1, {from: owner})
         await this.rewardToken.approve(this.airswap.address, ONE_HUNDRED, {from: oneHundred})
         await this.stakeToken.approve(this.liquidator.address, ONE_HUNDRED, { from: fakePool })
-
 
         this.multisig = await MultisigLiquidator.new([owner, auditor, issuer], this.liquidator.address)
     })
@@ -87,6 +87,18 @@ contract('MultisigLiquidator', function(accounts) {
             const sig1 = await signAction(issuer, this.multisig.address, 0, action)
             const sig2 = await signAction(owner, this.multisig.address, 0, action)
             await this.multisig.claimOwnership([sig1, sig2])
+        })
+        it('sets pool', async function() {
+            const action = (web3.utils.sha3('setPool(address)').slice(0, 10) + addressBytes32(approvedBeneficiary)).toLowerCase()
+            const sig1 = await signAction(issuer, this.multisig.address, 1, action)
+            const sig2 = await signAction(owner, this.multisig.address, 1, action)
+            const reclaimed = await this.multisig.setPool(approvedBeneficiary, [sig1, sig2])
+            assert.equal(reclaimed.logs.length, 1, "Action")
+            assert.equal(reclaimed.logs[0].event, "Action")
+            assert.equal(reclaimed.logs[0].args.nonce, 1, "first nonce")
+            assert.equal(reclaimed.logs[0].args.owner1, issuer, "incorrect owner1")
+            assert.equal(reclaimed.logs[0].args.owner2, owner, "incorrect owner2")
+            assert.equal(reclaimed.logs[0].args.action, action, "different action")
         })
         it('reclaims', async function() {
             const action = (web3.utils.sha3('reclaim(address,int256)').slice(0, 10) + addressBytes32(approvedBeneficiary) + uint256Bytes32(ONE_HUNDRED)).toLowerCase()
