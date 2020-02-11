@@ -111,6 +111,10 @@ contract MultisigLiquidator {
         return liquidatorCall(abi.encodeWithSignature("reclaimStake(address,uint256)", _destination, _stake), signatures);
     }
 
+    function setPool(address _pool, bytes[2] memory signatures) public returns (bytes memory) {
+        return liquidatorCall(abi.encodeWithSignature("setPool(address)", _pool), signatures);
+    }
+
     function claimOwnership(bytes[2] memory signatures) public returns (bytes memory) {
         return liquidatorCall(abi.encodeWithSignature("claimOwnership()"), signatures);
     }

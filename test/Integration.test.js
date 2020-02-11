@@ -9,8 +9,8 @@ const TrueUSDMock = artifacts.require('TrueUSDMock')
 const TrueUSD = artifacts.require('TrueUSD')
 const StakingOpportunityFactory = artifacts.require('StakingOpportunityFactory')
 const StakedTokenProxyImplementation = artifacts.require('StakedTokenProxyImplementation')
-const StakedTokenProxyMigrationMock = artifacts.require('StakedTokenProxyMigrationMock')
 const Liquidator = artifacts.require('LiquidatorMock')
+const MultisigLiquidator = artifacts.require('MultisigLiquidatorMock')
 const Vesting = artifacts.require('VestingMock')
 const Types = artifacts.require('Types')
 const UniswapFactory = artifacts.require('uniswap_factory')
@@ -31,13 +31,14 @@ const ONE_HUNDRED_ETHER = BN(100).mul(ONE_ETHER)
 const ONE_BITCOIN = BN(1e8)
 const ONE_HUNDRED_BITCOIN = BN(100).mul(ONE_BITCOIN)
 const DEFAULT_RATIO = BN(2000);
+const ERC20_KIND = '0x36372b07'
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 const { addressBytes32, uint256Bytes32 } = require('./lib/abi.js')
 const { signAction } = require('./lib/multisigLiquidator.js')
 
 
 contract('Deployment', function(accounts) {
-    const [_, deployer, owner, fakeController, oneHundred, account1, account2, kycAccount, auditor, manager, approvedBeneficiary] = accounts
+    const [_, account1, account2, deployer, owner, fakeController, oneHundred, kycAccount, auditor, manager, approvedBeneficiary] = accounts
     describe('TrueUSD and Registry', function() {
         beforeEach(async function() {
             // registry
@@ -98,6 +99,7 @@ contract('Deployment', function(accounts) {
                 await this.trustProxy.claimProxyOwnership({from:owner})
                 */
                 this.trust = await TrustToken.new(this.registry.address, {from:deployer})
+                await this.registry.subscribe(IS_REGISTERED_CONTRACT, this.trust.address, {from:owner})
             })
             it('TrustToken owner is deployer', async function() {
                 //assert.equal(await this.trust.registry.call(), this.registry.address)
@@ -148,7 +150,7 @@ contract('Deployment', function(accounts) {
                     })
                     describe('Liquidator', function() {
                         beforeEach(async function() {
-                            this.liquidator = await Liquidator.new({from:deployer})
+                            this.liquidator = await Liquidator.new(this.registry.address, this.tusd.address, this.trust.address, this.tusdUniswap.address, this.trustUniswap.address, {from:deployer})
                             await this.registry.subscribe(AIRSWAP_VALIDATOR, this.liquidator.address, {from:owner})
                             await this.registry.subscribe(APPROVED_BENEFICIARY, this.liquidator.address, {from:owner})
                             await this.registry.setAttributeValue(approvedBeneficiary, APPROVED_BENEFICIARY, 1, {from:owner})
@@ -169,16 +171,46 @@ contract('Deployment', function(accounts) {
                                     this.transferHandler = await AirswapERC20TransferHandler.new({from: deployer})
                                     this.transferHandlerRegistry = await TransferHandlerRegistry.new({from: deployer})
                                     this.transferHandlerRegistry.addTransferHandler(ERC20_KIND, this.transferHandler.address,{from:deployer})
-                                    this.airswap = await Airswap.new(this.transferHandlerRegistry.new({from:deployer}))
+                                    this.airswap = await Airswap.new(this.transferHandlerRegistry.address, {from:deployer})
                                     await this.registry.setAttributeValue(this.airswap.address, AIRSWAP_VALIDATOR, 1, {from:owner})
                                 })
                                 describe('Factory', function() {
                                     beforeEach(async function() {
-                                        this.factory = await StakingOpportunityFactory.new(this.registry.address, {from:deployer})
+                                        this.stakingImplementation = await StakedTokenProxyImplementation.new()
+                                        this.factory = await StakingOpportunityFactory.new(this.registry.address, this.stakingImplementation.address, {from:deployer})
+                                        await this.registry.setAttributeValue(this.factory.address, writeAttributeFor(IS_REGISTERED_CONTRACT), 1, {from:owner})
                                     })
                                     describe('Staking', function() {
                                         beforeEach(async function() {
-                                            this.stakedTrust = await StakedToken.at((await this.factory.createProxyStakingOpportunity(this.trust.address, this.tusd.address, this.liquidator.address))[0].args.opportunity)
+                                            const stakeCreation = await this.factory.createProxyStakingOpportunity(this.trust.address, this.tusd.address, this.liquidator.address)
+                                            this.stakedTrust = await StakedToken.at(stakeCreation.logs[0].args.opportunity)
+                                            const action = web3.utils.sha3('setPool(address)').slice(0, 10) + addressBytes32(this.stakedTrust.address)
+                                            const sig1 = await signAction(manager, this.multisigLiquidator.address, 1, action)
+                                            const sig2 = await signAction(owner, this.multisigLiquidator.address, 1, action)
+                                            await this.multisigLiquidator.setPool(this.stakedTrust.address, [sig1, sig2])
+                                        })
+                                        describe('After Staking', function() {
+                                            beforeEach(async function() {
+                                                await this.trust.transfer(this.stakedTrust.address, ONE_HUNDRED_BITCOIN, {from:account1})
+                                            })
+                                            it('staked', async function() {
+                                                assert(ONE_HUNDRED_BITCOIN.eq(await this.trust.balanceOf(this.stakedTrust.address)))
+                                                assert(ONE_HUNDRED_BITCOIN.mul(DEFAULT_RATIO).eq(await this.stakedTrust.balanceOf(account1)))
+                                            })
+                                            it('can reclaim stake directly', async function() {
+                                                const action = web3.utils.sha3('reclaimStake(address,uint256)').slice(0, 10) + addressBytes32(approvedBeneficiary) + uint256Bytes32(ONE_HUNDRED_BITCOIN)
+                                                const sig1 = await signAction(manager, this.multisigLiquidator.address, 2, action)
+                                                const sig2 = await signAction(owner, this.multisigLiquidator.address, 2, action)
+                                                await this.multisigLiquidator.reclaimStake(approvedBeneficiary, ONE_HUNDRED_BITCOIN, [sig1, sig2])
+                                                assert.equal(0, await this.trust.balanceOf(this.stakedTrust.address))
+                                                assert(ONE_HUNDRED_BITCOIN.eq(await this.trust.balanceOf(approvedBeneficiary)))
+                                            })
+                                            it('can reclaim', async function() {
+                                                const action = web3.utils.sha3('reclaim(address,int256)').slice(0, 10) + addressBytes32(approvedBeneficiary) + uint256Bytes32(ONE_HUNDRED_ETHER)
+                                                const sig1 = await signAction(manager, this.multisigLiquidator.address, 2, action)
+                                                const sig2 = await signAction(owner, this.multisigLiquidator.address, 2, action)
+                                                await this.multisigLiquidator.reclaim(approvedBeneficiary, ONE_HUNDRED_ETHER, [sig1, sig2])
+                                            })
                                         })
                                     })
                                 })
