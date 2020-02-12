@@ -115,4 +115,8 @@ contract StakingOpportunityFactory {
             priorImplementation = nextImplementation;
         }
     }
+
+    function getAttributeValue(address _account, bytes32 _attribute) external returns (uint256) {
+        return registry.getAttributeValue(_account, _attribute);
+    }
 }

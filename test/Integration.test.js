@@ -16,6 +16,7 @@ const Types = artifacts.require('Types')
 const UniswapFactory = artifacts.require('uniswap_factory')
 const UniswapExchange = artifacts.require('uniswap_exchange')
 
+const timeMachine = require('ganache-time-traveler')
 const bytes32 = require('../true-currencies/test/helpers/bytes32.js')
 const assertRevert = require('../true-currencies/test/helpers/assertRevert.js')['default']
 const writeAttributeFor = require('../true-currencies/registry/test/helpers/writeAttributeFor.js')
@@ -38,7 +39,7 @@ const { signAction } = require('./lib/multisigLiquidator.js')
 
 
 contract('Deployment', function(accounts) {
-    const [_, account1, account2, deployer, owner, fakeController, oneHundred, kycAccount, auditor, manager, approvedBeneficiary] = accounts
+    const [_, account1, account2, deployer, owner, fakeController, oneHundred, kycAccount, kycWriteKey, auditor, manager, approvedBeneficiary] = accounts
     describe('TrueUSD and Registry', function() {
         beforeEach(async function() {
             // registry
@@ -188,6 +189,8 @@ contract('Deployment', function(accounts) {
                                             const sig1 = await signAction(manager, this.multisigLiquidator.address, 1, action)
                                             const sig2 = await signAction(owner, this.multisigLiquidator.address, 1, action)
                                             await this.multisigLiquidator.setPool(this.stakedTrust.address, [sig1, sig2])
+                                            await this.registry.setAttributeValue(kycWriteKey, writeAttributeFor(PASSED_KYCAML), 1, {from:owner})
+                                            await this.registry.setAttributeValue(kycAccount, PASSED_KYCAML, 1, {from:kycWriteKey})
                                         })
                                         describe('After Staking', function() {
                                             beforeEach(async function() {
@@ -210,6 +213,29 @@ contract('Deployment', function(accounts) {
                                                 const sig1 = await signAction(manager, this.multisigLiquidator.address, 2, action)
                                                 const sig2 = await signAction(owner, this.multisigLiquidator.address, 2, action)
                                                 await this.multisigLiquidator.reclaim(approvedBeneficiary, ONE_HUNDRED_ETHER, [sig1, sig2])
+                                            })
+                                            it('can claim rewards', async function() {
+                                                await this.tusd.mint(this.stakedTrust.address, ONE_ETHER, {from:fakeController})
+                                                await this.stakedTrust.transfer(kycAccount, ONE_HUNDRED_BITCOIN.mul(DEFAULT_RATIO), {from:account1})
+                                                await this.stakedTrust.claimRewards(account1, {from:kycAccount})
+                                                assert(ONE_ETHER.eq(await this.tusd.balanceOf.call(account1)))
+                                            })
+                                            describe('Unstaking', function() {
+                                                beforeEach(async function() {
+                                                    const init = await this.stakedTrust.initUnstake(ONE_HUNDRED_BITCOIN.mul(DEFAULT_RATIO), {from:account1})
+                                                    this.timestamp = init.logs[2].args.timestamp
+                                                })
+                                                it('disallows finalizing unstaking', async function() {
+                                                    await assertRevert(this.stakedTrust.finalizeUnstake(oneHundred, [this.timestamp], {from:account1}))
+                                                })
+                                                describe('4 weeks later', function() {
+                                                    beforeEach(async function() {
+                                                        await timeMachine.advanceTime(28 * 24 * 60 * 60)
+                                                    })
+                                                    it('allows finalizing unstaking', async function() {
+                                                        await this.stakedTrust.finalizeUnstake(oneHundred, [this.timestamp], {from:account1})
+                                                    })
+                                                })
                                             })
                                         })
                                     })
