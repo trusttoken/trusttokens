@@ -5,8 +5,9 @@ import "./ValTokenWithHook.sol";
 import "./ValSafeMath.sol";
 
 contract StakingAsset is IERC20 {
-    function name() external returns (string memory);
-    function symbol() external returns (string memory);
+    function name() external view returns (string memory);
+    function symbol() external view returns (string memory);
+    function decimals() external view returns (uint8);
 }
 
 contract StakedToken is ValTokenWithHook {
@@ -15,10 +16,10 @@ contract StakedToken is ValTokenWithHook {
     uint256 cumulativeRewardsPerStake;
     mapping (address => uint256) claimedRewardsPerStake;
     uint256 rewardsRemainder;
-    uint256 stakePendingWithdrawal;
+    uint256 public stakePendingWithdrawal;
     mapping (address => mapping (uint256 => uint256)) pendingWithdrawals;
 
-    uint256 constant UNSTAKE_PERIOD = 21 days;
+    uint256 constant UNSTAKE_PERIOD = 28 days;
     event PendingWithdrawal(address indexed staker, uint256 indexed timestamp, uint256 indexed amount);
 
     /**
@@ -36,7 +37,7 @@ contract StakedToken is ValTokenWithHook {
     function rewardAsset() internal view returns (StakingAsset);
     function liquidator() internal view returns (address);
     uint256 constant MAX_UINT256 = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
-    uint256 constant DEFAULT_RATIO = 2000;
+    uint256 constant DEFAULT_RATIO = 1000;
 
     function initialize() internal {
         stakeAsset().approve(liquidator(), MAX_UINT256);
@@ -83,13 +84,19 @@ contract StakedToken is ValTokenWithHook {
         uint256 pendingRewards = (totalRewardsPerStake - userClaimedRewardsPerStake) * _value;
         if (resultBalance_ == 0) {
             // pay out the unclaimed rewards to the pool
-            cumulativeRewardsPerStake = totalRewardsPerStake + pendingRewards / resultSupply_;
-            rewardsRemainder = rewardsRemainder.add(pendingRewards % resultSupply_, "rewardsRemainder overflow");
+            _award(pendingRewards);
         } else {
             // merge unclaimed rewards with remaining balance
-            // TODO this can go negative
-            claimedRewardsPerStake[_from] = userClaimedRewardsPerStake - pendingRewards / resultBalance_;
-            rewardsRemainder = rewardsRemainder.add(pendingRewards % resultBalance_, "rewardsRemainder overflow");
+            // in the case this goes negative, award remainder to pool
+            uint256 pendingRewardsPerStake = pendingRewards / resultBalance_;
+            uint256 award_ = pendingRewards % resultBalance_;
+            if (pendingRewardsPerStake > userClaimedRewardsPerStake) {
+                claimedRewardsPerStake[_from] = 0;
+                _award(award_.add((pendingRewardsPerStake - userClaimedRewardsPerStake).mul(resultBalance_, "award overflow"), "award overflow?"));
+            } else {
+                claimedRewardsPerStake[_from] = userClaimedRewardsPerStake - pendingRewardsPerStake;
+                _award(award_);
+            }
         }
     }
 
@@ -106,11 +113,11 @@ contract StakedToken is ValTokenWithHook {
         uint256 result = numerator / denominator;
         uint256 remainder = numerator % denominator;
         if (remainder > 0) {
-            rewardsRemainder = rewardsRemainder.add(denominator - remainder, "remainderOverflow");
+            rewardsRemainder = rewardsRemainder.add(denominator - remainder, "remainder overflow");
             result += 1;
         }
         claimedRewardsPerStake[_to] = result;
-        totalSupply += _value;
+        totalSupply = totalSupply.add(_value, "totalSupply overflow");
         if (hook) {
             TrueCoinReceiver(to).tokenFallback(address(0x0), _value);
         }
@@ -151,27 +158,35 @@ contract StakedToken is ValTokenWithHook {
         require(stakeAsset().transferFrom(msg.sender, address(this), _amount));
     }
 
-    function initUnstake(uint256 _maxAmount) external {
-        uint256 unstake = balanceOf[msg.sender];
-        if (unstake > _maxAmount) {
-            unstake = _maxAmount;
+    /**
+     * maxAmount is in this.balanceOf units
+    */
+    function initUnstake(uint256 _maxAmount) external returns (uint256 unstake_) {
+        unstake_ = balanceOf[msg.sender];
+        if (unstake_ > _maxAmount) {
+            unstake_ = _maxAmount;
         }
-        _burn(msg.sender, unstake);
-        stakePendingWithdrawal = stakePendingWithdrawal.add(unstake, "stakePendingWithdrawal overflow");
-        pendingWithdrawals[msg.sender][now] = pendingWithdrawals[msg.sender][now].add(unstake, "pendingWithdrawals overflow");
-        emit PendingWithdrawal(msg.sender, now, unstake);
+        _burn(msg.sender, unstake_);
+        stakePendingWithdrawal = stakePendingWithdrawal.add(unstake_, "stakePendingWithdrawal overflow");
+        pendingWithdrawals[msg.sender][now] = pendingWithdrawals[msg.sender][now].add(unstake_, "pendingWithdrawals overflow");
+        emit PendingWithdrawal(msg.sender, now, unstake_);
     }
 
-    function finalizeUnstake(uint256[] calldata _timestamps) external {
-        uint256 total = 0;
+    function finalizeUnstake(address recipient, uint256[] calldata _timestamps) external {
+        uint256 totalUnstake = 0;
         for (uint256 i = _timestamps.length; i --> 0;) {
             uint256 timestamp = _timestamps[i];
-            require(timestamp + UNSTAKE_PERIOD < now);
-            total = total.add(pendingWithdrawals[msg.sender][timestamp], "stake overflow");
+            require(timestamp + UNSTAKE_PERIOD <= now);
+            totalUnstake = totalUnstake.add(pendingWithdrawals[msg.sender][timestamp], "stake overflow");
             pendingWithdrawals[msg.sender][timestamp] = 0;
         }
-        stakePendingWithdrawal = stakePendingWithdrawal.sub(total, "stakePendingWithdrawal underflow");
-        // TODO withdraw funds
+        IERC20 stake = stakeAsset();
+        uint256 totalStake = stake.balanceOf(address(this));
+        // totalUnstake / totalSupply = correspondingStake / totalStake
+        // totalUnstake * totalStake / totalSupply = correspondingStake
+        uint256 correspondingStake = totalStake.mul(totalUnstake, "totalStake*totalUnstake overflow").div(totalSupply.add(stakePendingWithdrawal, "overflow totalSupply+stakePendingWithdrawal"), "zero totals");
+        stakePendingWithdrawal = stakePendingWithdrawal.sub(totalUnstake, "stakePendingWithdrawal underflow");
+        stake.transfer(recipient, correspondingStake);
     }
 
     function award(uint256 _amount) external {
@@ -180,13 +195,14 @@ contract StakedToken is ValTokenWithHook {
 
     function _award(uint256 _amount) internal {
         uint256 remainder = rewardsRemainder.add(_amount, "overflow");
-        uint256 totalStake = totalSupply.sub(stakePendingWithdrawal, "stake pending withdrawal greater than stake?");
+        uint256 totalStake = totalSupply;
         uint256 rewardsAdded = remainder.div(totalStake, "total stake is zero");
         rewardsRemainder = remainder % totalStake;
         cumulativeRewardsPerStake = cumulativeRewardsPerStake.add(rewardsAdded, "cumulative rewards overflow");
     }
 
     function claimRewards(address _destination) external {
+        require(attributes[uint144(uint160(msg.sender) >> 20)] & ACCOUNT_KYC != 0, "please register at app.trusttoken.com");
         uint256 stake = balanceOf[msg.sender];
         if (stake == 0) {
             return;
@@ -196,7 +212,18 @@ contract StakedToken is ValTokenWithHook {
             return;
         }
         claimedRewardsPerStake[msg.sender] = cumulativeRewardsPerStake;
-        require(attributes[uint144(uint160(msg.sender) >> 20)] & ACCOUNT_KYC != 0, "please register at app.trusttoken.com");
         require(rewardAsset().transfer(_destination, dueRewards));
+    }
+
+    function decimals() public view returns (uint8) {
+        return stakeAsset().decimals() + 3;
+    }
+
+    function name() public view returns (string memory) {
+        return string(abi.encodePacked(stakeAsset().name(), " staked for ", rewardAsset().name()));
+    }
+
+    function symbol() public view returns (string memory) {
+        return string(abi.encodePacked(stakeAsset().symbol(), ":", rewardAsset().symbol()));
     }
 }

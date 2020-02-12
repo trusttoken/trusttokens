@@ -17,14 +17,15 @@
     "url": "https://github.com/trusttoken/trusttokens/issues"
   },
   "dependencies": {
-    "wjm-airswap-swap": "5.0.1",
     "babel-polyfill": "6.26.0",
     "babel-preset-env": "1.6.1",
     "ganache-cli": "6.8.1",
+    "ganache-time-traveler": "^1.0.11",
     "openzeppelin-solidity": "2.4.0",
     "truffle": "5.1.11",
     "truffle-hdwallet-provider": "0.0.3",
-    "web3": "1.2.2"
+    "web3": "1.2.2",
+    "wjm-airswap-swap": "5.0.1"
   },
   "homepage": "https://github.com/trusttoken/trusttokens#readme",
   "devDependencies": {

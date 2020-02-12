@@ -43,8 +43,8 @@ contract('Vesting', function(accounts) {
         })
         it('prevents claiming out of bounds', async function() {
             await this.vesting.claimTokenOwnership({from: owner})
-            assertRevert(this.vesting.claim(0, {from: account1}))
-            assertRevert(this.vesting.deliver(0, account2, {from: account1}))
+            await assertRevert(this.vesting.claim(0, {from: account1}))
+            await assertRevert(this.vesting.deliver(0, account2, {from: account1}))
         })
     })
     describe('claim', function() {
@@ -59,16 +59,16 @@ contract('Vesting', function(accounts) {
 
             await this.vesting.scheduleMint(account1, ONE_HUNDRED, timestamp, {from:owner})
 
-            assertRevert(this.vesting.claim(0, {from: account1}))
-            assertRevert(this.vesting.deliver(0, account2, {from: account1}))
+            await assertRevert(this.vesting.claim(0, {from: account1}))
+            await assertRevert(this.vesting.deliver(0, account2, {from: account1}))
         })
         it('prevents duplicate claim or deliver', async function() {
             await this.vesting.claimTokenOwnership({from: owner})
             let timestamp = parseInt(Date.now() / 1000);
             await this.vesting.scheduleMint(account1, ONE_HUNDRED, timestamp, {from:owner})
             await this.vesting.claim(0, {from:account1})
-            assertRevert(this.vesting.claim(0, {from: account1}))
-            assertRevert(this.vesting.deliver(0, account2, {from: account1}))
+            await assertRevert(this.vesting.claim(0, {from: account1}))
+            await assertRevert(this.vesting.deliver(0, account2, {from: account1}))
         })
         it('claim tokens after renunciation', async function() {
 
