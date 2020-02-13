@@ -169,8 +169,7 @@ contract Liquidator {
         stakeUniswapV1State.tokenBalance = stakeToken().balanceOf(address(stakeUniswapV1State.uniswap));
         int256 remainingDebt = _debt;
         TradeExecutor curr = head();
-        // TODO check gasleft
-        while (curr != TradeExecutor(0)) {
+        while (curr != TradeExecutor(0) && gasleft() > 160000) {
             FlatOrder memory order = airswapOrderInfo(curr);
             if (order.senderAmount <= remainingStake) {
                 if (inputForUniswapV1Output(uint256(remainingDebt), outputUniswapV1State, stakeUniswapV1State) * order.signerAmount < order.senderAmount * uint256(remainingDebt)) {
@@ -444,8 +443,7 @@ contract Liquidator {
     function prune() external {
         address prevValid = address(0);
         TradeExecutor curr = next[address(0)];
-        // TODO check gasleft
-        while (curr != TradeExecutor(0)) {
+        while (curr != TradeExecutor(0) && gasleft() > 30000) {
             FlatOrder memory currInfo = airswapOrderInfo(curr);
             if (prunableOrder(currInfo)) {
                 emit Cancel(curr);
