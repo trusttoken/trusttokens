@@ -176,7 +176,7 @@ contract StakedToken is ValTokenWithHook {
         uint256 totalUnstake = 0;
         for (uint256 i = _timestamps.length; i --> 0;) {
             uint256 timestamp = _timestamps[i];
-            require(timestamp + UNSTAKE_PERIOD <= now);
+            require(timestamp + UNSTAKE_PERIOD <= now, "must wait 4 weeks to unstake");
             totalUnstake = totalUnstake.add(pendingWithdrawals[msg.sender][timestamp], "stake overflow");
             pendingWithdrawals[msg.sender][timestamp] = 0;
         }
@@ -194,15 +194,19 @@ contract StakedToken is ValTokenWithHook {
     }
 
     function _award(uint256 _amount) internal {
-        uint256 remainder = rewardsRemainder.add(_amount, "overflow");
+        uint256 remainder = rewardsRemainder.add(_amount, "rewards overflow");
         uint256 totalStake = totalSupply;
-        uint256 rewardsAdded = remainder.div(totalStake, "total stake is zero");
-        rewardsRemainder = remainder % totalStake;
-        cumulativeRewardsPerStake = cumulativeRewardsPerStake.add(rewardsAdded, "cumulative rewards overflow");
+        if (totalStake > 0) {
+            uint256 rewardsAdded = remainder / totalStake;
+            rewardsRemainder = remainder % totalStake;
+            cumulativeRewardsPerStake = cumulativeRewardsPerStake.add(rewardsAdded, "cumulative rewards overflow");
+        } else {
+            rewardsRemainder = remainder;
+        }
     }
 
     function claimRewards(address _destination) external {
-        require(attributes[uint144(uint160(msg.sender) >> 20)] & ACCOUNT_KYC != 0, "please register at app.trusttoken.com");
+        require(attributes[uint144(uint160(msg.sender) >> 20)] & ACCOUNT_KYC != 0 || registry().getAttributeValue(msg.sender, PASSED_KYCAML) != 0, "please register at app.trusttoken.com");
         uint256 stake = balanceOf[msg.sender];
         if (stake == 0) {
             return;

@@ -1,6 +1,7 @@
 const Liquidator = artifacts.require('LiquidatorMock')
 const BN = web3.utils.toBN
-const ONE_HUNDRED = BN(100).mul(BN(1e18))
+const ONE_ETHER = BN(1e18)
+const ONE_HUNDRED_ETHER = BN(100).mul(ONE_ETHER)
 const assertRevert = require('../true-currencies/test/helpers/assertRevert.js')['default']
 const MockTrustToken = artifacts.require('MockTrustToken')
 const TrueUSD = artifacts.require('TrueUSD')
@@ -32,8 +33,8 @@ contract('Liquidator', function(accounts) {
         this.outputUniswap = await UniswapExchange.at(this.outputUniswapAddress)
         this.stakeUniswap = await UniswapExchange.at((await this.uniswapFactory.createExchange(this.stakeToken.address)).logs[0].args.exchange)
         await this.rewardToken.setRegistry(this.registry.address, {from: issuer})
-        await this.rewardToken.mint(oneHundred, ONE_HUNDRED, {from:issuer});
-        await this.stakeToken.mint(oneHundred, ONE_HUNDRED, {from:issuer});
+        await this.rewardToken.mint(oneHundred, ONE_HUNDRED_ETHER, {from:issuer});
+        await this.stakeToken.mint(oneHundred, ONE_HUNDRED_ETHER, {from:issuer});
         //await this.registry.subscribe(PASSED_KYCAML, this.stakeToken.address, {from: owner})
         //await this.registry.setAttributeValue(oneHundred, PASSED_KYCAML, 1, {from: owner})
         //await this.registry.setAttributeValue(kycAccount, PASSED_KYCAML, 1, {from: owner})
@@ -42,13 +43,13 @@ contract('Liquidator', function(accounts) {
         this.transferHandlerRegistry.addTransferHandler(ERC20_KIND, this.transferHandler.address,{from:owner})
         this.types = await Types.new()
         await Airswap.link('Types', this.types.address)
-        await this.rewardToken.approve(this.outputUniswap.address, ONE_HUNDRED, {from: oneHundred})
-        await this.stakeToken.approve(this.stakeUniswap.address, ONE_HUNDRED, {from: oneHundred})
+        await this.rewardToken.approve(this.outputUniswap.address, ONE_HUNDRED_ETHER, {from: oneHundred})
+        await this.stakeToken.approve(this.stakeUniswap.address, ONE_HUNDRED_ETHER, {from: oneHundred})
         let expiry = parseInt(Date.now() / 1000) + 12000
-        await this.outputUniswap.addLiquidity(ONE_HUNDRED, ONE_HUNDRED, expiry, {from:oneHundred, value:1e17})
-        await this.stakeUniswap.addLiquidity(ONE_HUNDRED, ONE_HUNDRED, expiry, {from:oneHundred, value:1e17})
-        await this.rewardToken.mint(oneHundred, ONE_HUNDRED, {from:issuer});
-        await this.stakeToken.mint(oneHundred, ONE_HUNDRED, {from:issuer});
+        await this.outputUniswap.addLiquidity(ONE_HUNDRED_ETHER, ONE_HUNDRED_ETHER, expiry, {from:oneHundred, value:1e17})
+        await this.stakeUniswap.addLiquidity(ONE_HUNDRED_ETHER, ONE_HUNDRED_ETHER, expiry, {from:oneHundred, value:1e17})
+        await this.rewardToken.mint(oneHundred, ONE_HUNDRED_ETHER, {from:issuer});
+        await this.stakeToken.mint(oneHundred, ONE_HUNDRED_ETHER, {from:issuer});
         this.airswap = await Airswap.new(this.transferHandlerRegistry.address, {from: owner})
         this.liquidator = await Liquidator.new(this.registry.address, this.rewardToken.address, this.stakeToken.address, this.outputUniswap.address, this.stakeUniswap.address, {from: owner})
         await this.liquidator.setPool(fakePool, {from:owner})
@@ -56,64 +57,64 @@ contract('Liquidator', function(accounts) {
         await this.registry.subscribe(APPROVED_BENEFICIARY, this.liquidator.address, {from: owner})
         await this.registry.setAttributeValue(this.airswap.address, AIRSWAP_VALIDATOR, hashDomain(this.airswap.address), {from: owner})
         await this.registry.setAttributeValue(approvedBeneficiary, APPROVED_BENEFICIARY, 1, {from: owner})
-        await this.rewardToken.approve(this.airswap.address, ONE_HUNDRED, {from: oneHundred})
-        await this.stakeToken.approve(this.liquidator.address, ONE_HUNDRED, { from: fakePool })
+        await this.rewardToken.approve(this.airswap.address, ONE_HUNDRED_ETHER, {from: oneHundred})
+        await this.stakeToken.approve(this.liquidator.address, ONE_HUNDRED_ETHER, { from: fakePool })
     })
     describe('Auth', function() {
         let nonce = 0
         let expiry = parseInt(Date.now() / 1000) + 12000
         it('prevents non-owner from reclaiming', async function() {
-            await assertRevert(this.liquidator.reclaim(approvedBeneficiary, ONE_HUNDRED), {from:account2})
-            await assertRevert(this.liquidator.reclaimStake(approvedBeneficiary, ONE_HUNDRED), {from:account2})
+            await assertRevert(this.liquidator.reclaim(approvedBeneficiary, ONE_HUNDRED_ETHER), {from:account2})
+            await assertRevert(this.liquidator.reclaimStake(approvedBeneficiary, ONE_HUNDRED_ETHER), {from:account2})
         })
         it('prevents non-approved beneficiary', async function() {
-            await assertRevert(this.liquidator.reclaim(account2, ONE_HUNDRED, {from:owner}))
+            await assertRevert(this.liquidator.reclaim(account2, ONE_HUNDRED_ETHER, {from:owner}))
         })
         it('prevents liquidation of zero', async function() {
             await assertRevert(this.liquidator.reclaim(approvedBeneficiary, BN(0), {from:owner}))
         })
         it('prevents registering orders with non-airswap validator', async function() {
             await this.stakeToken.transfer(fakePool, BN(100), {from: oneHundred})
-            let order = new Order(nonce, expiry, this.liquidator.address, oneHundred, ONE_HUNDRED, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED, this.stakeToken.address)
+            let order = new Order(nonce, expiry, this.liquidator.address, oneHundred, ONE_HUNDRED_ETHER, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED_ETHER, this.stakeToken.address)
             await order.sign()
             await assertRevert(this.liquidator.registerAirswap(order.web3Tuple))
         })
         it('prevents tiny orders', async function() {
-            await this.stakeToken.transfer(fakePool, ONE_HUNDRED, {from: oneHundred})
-            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED, this.rewardToken.address, this.liquidator.address, BN(1), this.stakeToken.address)
+            await this.stakeToken.transfer(fakePool, ONE_HUNDRED_ETHER, {from: oneHundred})
+            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED_ETHER, this.rewardToken.address, this.liquidator.address, BN(1), this.stakeToken.address)
             await order.sign()
             await assertRevert(this.liquidator.registerAirswap(order.web3Tuple))
         })
         it('prevents used nonces', async function() {
-            await this.stakeToken.transfer(fakePool, ONE_HUNDRED, {from: oneHundred})
-            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED, this.stakeToken.address)
+            await this.stakeToken.transfer(fakePool, ONE_HUNDRED_ETHER, {from: oneHundred})
+            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED_ETHER, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED_ETHER, this.stakeToken.address)
             await order.sign()
             await this.airswap.cancel([nonce], {from:oneHundred})
             await assertRevert(this.liquidator.registerAirswap(order.web3Tuple))
         })
         it('enforces nonce minimum', async function() {
-            await this.stakeToken.transfer(fakePool, ONE_HUNDRED, {from: oneHundred})
-            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED, this.stakeToken.address)
+            await this.stakeToken.transfer(fakePool, ONE_HUNDRED_ETHER, {from: oneHundred})
+            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED_ETHER, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED_ETHER, this.stakeToken.address)
             await order.sign()
             await this.airswap.cancelUpTo(nonce + 1, {from:oneHundred})
             await assertRevert(this.liquidator.registerAirswap(order.web3Tuple))
         })
         it('prevents invalid signatures', async function() {
-            await this.stakeToken.transfer(fakePool, ONE_HUNDRED, {from: oneHundred})
-            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED, this.stakeToken.address)
+            await this.stakeToken.transfer(fakePool, ONE_HUNDRED_ETHER, {from: oneHundred})
+            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED_ETHER, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED_ETHER, this.stakeToken.address)
             await order.sign()
             order.s = '5555555555555555555555555555555555555555555555555555555555555555'
             await assertRevert(this.liquidator.registerAirswap(order.web3Tuple))
         })
         it('prevents invalid signatory', async function() {
-            await this.stakeToken.transfer(fakePool, ONE_HUNDRED, {from:oneHundred})
-            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED, this.stakeToken.address)
+            await this.stakeToken.transfer(fakePool, ONE_HUNDRED_ETHER, {from:oneHundred})
+            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED_ETHER, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED_ETHER, this.stakeToken.address)
             await order.sign(account2)
             await assertRevert(this.liquidator.registerAirswap(order.web3Tuple))
         })
     })
     describe('reclaimStake', function() {
-        const stakeAmount = ONE_HUNDRED.div(BN(4))
+        const stakeAmount = ONE_HUNDRED_ETHER.div(BN(4))
         beforeEach(async function() {
             await this.stakeToken.transfer(fakePool, stakeAmount, {from: oneHundred})
         })
@@ -131,9 +132,9 @@ contract('Liquidator', function(accounts) {
         let nonce = 0
         let expiry = parseInt(Date.now() / 1000) + 12000
         it('registers a swap', async function() {
-            const senderAmount = ONE_HUNDRED
+            const senderAmount = ONE_HUNDRED_ETHER
             await this.stakeToken.transfer(fakePool, senderAmount, {from: oneHundred})
-            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED, this.rewardToken.address, this.liquidator.address, senderAmount, this.stakeToken.address)
+            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED_ETHER, this.rewardToken.address, this.liquidator.address, senderAmount, this.stakeToken.address)
             await order.sign()
             const registered = await this.liquidator.registerAirswap(order.web3Tuple)
             assert(registered.logs.length == 1)
@@ -148,7 +149,7 @@ contract('Liquidator', function(accounts) {
             assert(orderInfo.signerKind == ERC20_KIND)
             assert(orderInfo.signerWallet == oneHundred)
             assert(orderInfo.signerToken == this.rewardToken.address)
-            assert(orderInfo.signerAmount == ONE_HUNDRED)
+            assert(orderInfo.signerAmount == ONE_HUNDRED_ETHER)
             assert(orderInfo.signerId == 0)
             assert(orderInfo.senderKind == ERC20_KIND)
             assert(orderInfo.senderWallet == this.liquidator.address)
@@ -171,9 +172,9 @@ contract('Liquidator', function(accounts) {
             nonce += 1
         })
         it('executes a swap', async function() {
-            const senderAmount = ONE_HUNDRED.div(BN(4))
+            const senderAmount = ONE_HUNDRED_ETHER.div(BN(4))
             await this.stakeToken.transfer(fakePool, senderAmount, {from: oneHundred})
-            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED, this.rewardToken.address, this.liquidator.address, senderAmount, this.stakeToken.address)
+            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED_ETHER, this.rewardToken.address, this.liquidator.address, senderAmount, this.stakeToken.address)
             await order.sign()
             await this.liquidator.registerAirswap(order.web3Tuple)
             const trade = await this.liquidator.head.call()
@@ -185,7 +186,7 @@ contract('Liquidator', function(accounts) {
             assert(orderInfo.signerKind == ERC20_KIND)
             assert(orderInfo.signerWallet == oneHundred)
             assert(orderInfo.signerToken == this.rewardToken.address)
-            assert(orderInfo.signerAmount == ONE_HUNDRED)
+            assert(orderInfo.signerAmount == ONE_HUNDRED_ETHER)
             assert(orderInfo.signerId == 0)
             assert(orderInfo.senderKind == ERC20_KIND)
             assert(orderInfo.senderWallet == this.liquidator.address)
@@ -221,17 +222,60 @@ contract('Liquidator', function(accounts) {
             assert(BN(orderInfo.senderAmount).eq(await this.stakeToken.balanceOf(oneHundred)))
             assert(BN(0).eq(await this.stakeToken.balanceOf(fakePool)))
         })
+        describe('handles out of gas', function() {
+            const N = 40
+            beforeEach(async function() {
+                await this.stakeToken.transfer(fakePool, ONE_HUNDRED_ETHER, {from: oneHundred})
+                const senderAmount = ONE_HUNDRED_ETHER.div(BN(N))
+                await this.rewardToken.mint(oneHundred, BN(N).mul(ONE_HUNDRED_ETHER), {from:issuer})
+                for (let i = 0; i < N; i++) {
+                    let order = new Order(nonce, expiry, this.airswap.address, oneHundred, BN(N).mul(ONE_ETHER), this.rewardToken.address, this.liquidator.address, senderAmount, this.stakeToken.address)
+                    await order.sign()
+                    await this.liquidator.registerAirswap(order.web3Tuple)
+                    const trade = await this.liquidator.head.call()
+                    const next = await this.liquidator.next.call(trade)
+                }
+            })
+            it('stops doing airswap when low on gas', async function() {
+                const reclaimed = await this.liquidator.reclaim(approvedBeneficiary, BN((N * N + N) / 2).mul(ONE_ETHER), {from:owner, gas:500000})
+                assert(reclaimed.logs.length < 79, reclaimed.logs.length)
+            })
+            async function checkList() {
+                let head = await this.liquidator.head.call()
+                const visited = {}
+                let headOrderInfo = await this.liquidator.airswapOrderInfo.call(head)
+                while (head != ZERO_ADDRESS) {
+                    visited[head] = true
+                    let next =  await this.liquidator.next.call(head)
+                    const nextOrderInfo = await this.liquidator.airswapOrderInfo.call(next)
+                    assert(BN(nextOrderInfo.signerAmount).lte(BN(headOrderInfo.signerAmount)), [nextOrderInfo.signerAmount, headOrderInfo.signerAmount])
+                    assert(next != head)
+                    headOrderInfo = nextOrderInfo
+                    head = next;
+                    assert(!visited[next])
+                }
+            }
+            it('stops pruning when low on gas and leaves it sane', async function() {
+                await this.rewardToken.approve(this.airswap.address, 0, {from:oneHundred})
+                await checkList.bind(this)()
+                const pruned1 = await this.liquidator.prune({gas:70000})
+                await checkList.bind(this)()
+                const pruned2 = await this.liquidator.prune({gas:100000})
+                await checkList.bind(this)()
+                assert(pruned1.logs.length < pruned2.logs.length, [pruned1.logs.length, pruned2.logs.length])
+            })
+        })
         it('tolerates swap failure', async function() {
-            await this.stakeToken.transfer(fakePool, ONE_HUNDRED, {from: oneHundred})
-            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED, this.stakeToken.address)
+            await this.stakeToken.transfer(fakePool, ONE_HUNDRED_ETHER, {from: oneHundred})
+            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED_ETHER, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED_ETHER, this.stakeToken.address)
             await order.sign()
             const registration = await this.liquidator.registerAirswap(order.web3Tuple)
             assert.equal(1, registration.logs.length)
             assert.equal(registration.logs[0].event, "LimitOrder")
             const trade = await this.liquidator.head.call()
             assert.equal(registration.logs[0].args.order, trade)
-            await this.rewardToken.transfer(account2, ONE_HUNDRED, {from:oneHundred})
-            const reclaimed = await this.liquidator.reclaim(approvedBeneficiary, ONE_HUNDRED, {from:owner})
+            await this.rewardToken.transfer(account2, ONE_HUNDRED_ETHER, {from:oneHundred})
+            const reclaimed = await this.liquidator.reclaim(approvedBeneficiary, ONE_HUNDRED_ETHER, {from:owner})
             assert.equal(3, reclaimed.logs.length, "Cancel, LiquidationError, and Liquidated")
             let cancelEvent = reclaimed.logs[0]
             assert.equal(cancelEvent.event, "Cancel")
@@ -243,15 +287,15 @@ contract('Liquidator', function(accounts) {
             assert.equal(liquidationEvent.event, "Liquidated")
         })
         it('prunes insufficient balance', async function() {
-            await this.stakeToken.transfer(fakePool, ONE_HUNDRED, {from: oneHundred})
-            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED, this.stakeToken.address)
+            await this.stakeToken.transfer(fakePool, ONE_HUNDRED_ETHER, {from: oneHundred})
+            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED_ETHER, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED_ETHER, this.stakeToken.address)
             await order.sign()
             const registration = await this.liquidator.registerAirswap(order.web3Tuple)
             assert.equal(1, registration.logs.length)
             assert.equal(registration.logs[0].event, "LimitOrder")
             const trade = await this.liquidator.head.call()
             assert.equal(registration.logs[0].args.order, trade)
-            await this.rewardToken.transfer(account2, ONE_HUNDRED, {from:oneHundred})
+            await this.rewardToken.transfer(account2, ONE_HUNDRED_ETHER, {from:oneHundred})
             const pruned = await this.liquidator.prune()
             assert.equal(pruned.logs.length, 1, "Cancel")
             assert.equal(pruned.logs[0].event, "Cancel")
@@ -260,8 +304,8 @@ contract('Liquidator', function(accounts) {
             assert.equal(head, ZERO_ADDRESS)
         })
         it('prunes insufficient allowance', async function() {
-            await this.stakeToken.transfer(fakePool, ONE_HUNDRED, {from: oneHundred})
-            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED, this.stakeToken.address)
+            await this.stakeToken.transfer(fakePool, ONE_HUNDRED_ETHER, {from: oneHundred})
+            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED_ETHER, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED_ETHER, this.stakeToken.address)
             await order.sign()
             const registration = await this.liquidator.registerAirswap(order.web3Tuple)
             assert.equal(1, registration.logs.length)
@@ -277,8 +321,8 @@ contract('Liquidator', function(accounts) {
             assert.equal(head, ZERO_ADDRESS)
         })
         it('prunes invalidated nonce', async function() {
-            await this.stakeToken.transfer(fakePool, ONE_HUNDRED, {from: oneHundred})
-            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED, this.stakeToken.address)
+            await this.stakeToken.transfer(fakePool, ONE_HUNDRED_ETHER, {from: oneHundred})
+            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED_ETHER, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED_ETHER, this.stakeToken.address)
             await order.sign()
             const registration = await this.liquidator.registerAirswap(order.web3Tuple)
             assert.equal(1, registration.logs.length)
@@ -294,8 +338,8 @@ contract('Liquidator', function(accounts) {
             assert.equal(head, ZERO_ADDRESS)
         })
         it('prunes minimum nonce', async function() {
-            await this.stakeToken.transfer(fakePool, ONE_HUNDRED, {from: oneHundred})
-            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED, this.stakeToken.address)
+            await this.stakeToken.transfer(fakePool, ONE_HUNDRED_ETHER, {from: oneHundred})
+            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED_ETHER, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED_ETHER, this.stakeToken.address)
             await order.sign()
             const registration = await this.liquidator.registerAirswap(order.web3Tuple)
             assert.equal(1, registration.logs.length)
@@ -474,9 +518,9 @@ contract('Liquidator', function(accounts) {
             assert.equal(await this.liquidator.next.call(trade1), ZERO_ADDRESS)
         })
         it('tolerates delegated signatories', async function() {
-            await this.stakeToken.transfer(fakePool, ONE_HUNDRED, {from:oneHundred})
+            await this.stakeToken.transfer(fakePool, ONE_HUNDRED_ETHER, {from:oneHundred})
             await this.airswap.authorizeSigner(account2, {from:oneHundred})
-            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED, this.stakeToken.address)
+            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED_ETHER, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED_ETHER, this.stakeToken.address)
             await order.sign(account2)
             const registered = await this.liquidator.registerAirswap(order.web3Tuple)
             assert.equal(registered.logs.length, 1)
@@ -485,9 +529,9 @@ contract('Liquidator', function(accounts) {
             assert.equal(executor, await this.liquidator.next.call(ZERO_ADDRESS))
         })
         it('prunes revoked signatories', async function() {
-            await this.stakeToken.transfer(fakePool, ONE_HUNDRED, {from:oneHundred})
+            await this.stakeToken.transfer(fakePool, ONE_HUNDRED_ETHER, {from:oneHundred})
             await this.airswap.authorizeSigner(account2, {from:oneHundred})
-            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED, this.stakeToken.address)
+            let order = new Order(nonce, expiry, this.airswap.address, oneHundred, ONE_HUNDRED_ETHER, this.rewardToken.address, this.liquidator.address, ONE_HUNDRED_ETHER, this.stakeToken.address)
             await order.sign(account2)
             await this.liquidator.registerAirswap(order.web3Tuple)
             await this.airswap.revokeSigner(account2, {from:oneHundred})
@@ -497,18 +541,18 @@ contract('Liquidator', function(accounts) {
     })
     describe('UniswapV1', function() {
         it('Liquidates all stake', async function() {
-            await this.stakeToken.transfer(fakePool, ONE_HUNDRED, {from: oneHundred})
-            let reclaimed = await this.liquidator.reclaim(approvedBeneficiary, ONE_HUNDRED, {from:owner})
+            await this.stakeToken.transfer(fakePool, ONE_HUNDRED_ETHER, {from: oneHundred})
+            let reclaimed = await this.liquidator.reclaim(approvedBeneficiary, ONE_HUNDRED_ETHER, {from:owner})
             assert.equal(reclaimed.logs.length, 1, "only one liquidation")
             assert.equal(reclaimed.logs[0].event, "Liquidated")
-            assert(reclaimed.logs[0].args.stakeAmount.eq(ONE_HUNDRED), "all stake liquidated")
+            assert(reclaimed.logs[0].args.stakeAmount.eq(ONE_HUNDRED_ETHER), "all stake liquidated")
             let debtAmount = BN("33233233333634234806")
             assert(reclaimed.logs[0].args.debtAmount.gte(debtAmount), "maximum debt")
             assert(BN(0).eq(await this.stakeToken.balanceOf(fakePool)))
             assert(debtAmount.lte(await this.rewardToken.balanceOf(approvedBeneficiary)))
         })
         it('Liquidates most stake', async function() {
-            await this.stakeToken.transfer(fakePool, ONE_HUNDRED, {from: oneHundred})
+            await this.stakeToken.transfer(fakePool, ONE_HUNDRED_ETHER, {from: oneHundred})
             const debt = BN("33233233333634234806")
             const expectedStakeLiquidated = BN("0x56bc75e2d630ff468")
             let reclaimed = await this.liquidator.reclaim(approvedBeneficiary, debt, {from:owner})

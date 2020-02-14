@@ -52,7 +52,7 @@ contract('StakingOpportunityFactory', function(accounts) {
             assert(ONE_HUNDRED_BITCOIN.mul(DEFAULT_RATIO).eq(await stakingOpportunity.totalSupply.call()))
 
             await this.rewardToken.transfer(stakingOpportunity.address, ONE_HUNDRED_ETHER, {from:oneHundred})
-            await this.factory.syncAttributeValues(PASSED_KYCAML, [kycAccount], [stakingOpportunity.address])
+            //await this.factory.syncAttributeValues(PASSED_KYCAML, [kycAccount], [stakingOpportunity.address])
             await stakingOpportunity.transfer(kycAccount, ONE_HUNDRED_BITCOIN.mul(DEFAULT_RATIO), { from: oneHundred})
             await stakingOpportunity.claimRewards(kycAccount, {from:kycAccount})
             assert(ONE_HUNDRED_ETHER.sub(await this.rewardToken.balanceOf.call(kycAccount)).lt(await stakingOpportunity.totalSupply.call()))
