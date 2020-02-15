@@ -8,8 +8,8 @@ contract StakingOpportunityFactory {
     address public owner;
     address public pendingOwner;
     Registry public registry;
-    /*StakedTokenProxyImplementation*/ address[] public migrations;
-    bytes[] public upgradeCalls;
+    /*StakedTokenProxyImplementation*/ address public initializer;
+    address public currentImplementation;
 
     bytes32 constant IS_REGISTERED_CONTRACT = "isRegisteredContract";
 
@@ -17,18 +17,13 @@ contract StakingOpportunityFactory {
         owner = msg.sender;
         emit OwnershipTransferred(address(0), owner);
         registry = _registry;
-        migrations.push(_implementation);
-        upgradeCalls.push("");
+        currentImplementation = initializer = _implementation;
     }
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     event StakingOpportunity(StakedToken indexed opportunity, bool indexed upgradeable);
     event UpgradeFailure(address indexed proxy, address indexed priorImplementation, address indexed nextImplementation, bytes failure);
  
-    function migrationCount() public view returns (uint256) {
-        return migrations.length;
-    }
-
     function createStakingOpportunity(StakingAsset _stakeAsset, StakingAsset _rewardAsset, address _liquidator) external returns (StakedToken) {
         StakedToken result = new MockStakedToken(_stakeAsset, _rewardAsset, Registry(address(this)), _liquidator);
         registry.setAttributeValue(address(result), IS_REGISTERED_CONTRACT, 1);
@@ -38,24 +33,12 @@ contract StakingOpportunityFactory {
 
     function createProxyStakingOpportunity(StakingAsset _stakeAsset, StakingAsset _rewardAsset, address _liquidator) external returns (StakedToken) {
         OwnedUpgradeabilityProxy proxy = new OwnedUpgradeabilityProxy();
-        address priorImplementation = migrations[0];
+        address priorImplementation = initializer;
         proxy.upgradeTo(priorImplementation);
         StakedTokenProxyImplementation(address(proxy)).initialize(_stakeAsset, _rewardAsset, Registry(address(this)), _liquidator);
-        uint256 _currentVersion = 0;
-        uint256 _toVersion = migrations.length - 1;
-        while(_currentVersion ++< _toVersion && gasleft() > 50000) {
-            address nextImplementation = migrations[_currentVersion];
-            proxy.upgradeTo(nextImplementation);
-            if (upgradeCalls[_currentVersion].length > 3) {
-                (bool success, bytes memory result) = address(proxy).call(upgradeCalls[_currentVersion]);
-                if (!success) {
-                    emit UpgradeFailure(address(proxy), priorImplementation, address(nextImplementation), result);
-                    // revert upgrade and stop
-                    proxy.upgradeTo(priorImplementation);
-                    break;
-                }
-            }
-            priorImplementation = nextImplementation;
+        address finalImplementation = currentImplementation;
+        if (finalImplementation != priorImplementation) {
+            proxy.upgradeTo(finalImplementation);
         }
 
         registry.setAttributeValue(address(proxy), IS_REGISTERED_CONTRACT, 1);
@@ -73,9 +56,13 @@ contract StakingOpportunityFactory {
         }
     }
 
-    function appendMigration(address _implementation, bytes calldata _upgradeCall) onlyOwner external {
-        migrations.push(_implementation);
-        upgradeCalls.push(_upgradeCall);
+    bytes32 constant EMPTY_CONTRACT = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
+
+    function upgradeAllTo(address _implementation) onlyOwner external {
+        bytes32 codeHash;
+        assembly { codeHash := extcodehash(_implementation) }
+        require(codeHash != 0x0 && codeHash != EMPTY_CONTRACT);
+        currentImplementation = _implementation;
     }
 
     modifier onlyPendingOwner() {
@@ -97,22 +84,11 @@ contract StakingOpportunityFactory {
         pendingOwner = address(0);
     }
 
-    function migrateFrom(OwnedUpgradeabilityProxy _proxy, uint256 _currentVersion, uint256 _toVersion) external {
+    function migrate(OwnedUpgradeabilityProxy _proxy) external {
         address priorImplementation = _proxy.implementation();
-        require(priorImplementation == migrations[_currentVersion]);
-        while(_currentVersion ++< _toVersion) {
-            address nextImplementation = migrations[_currentVersion];
-            _proxy.upgradeTo(nextImplementation);
-            if (upgradeCalls[_currentVersion].length > 3) {
-                (bool success, bytes memory result) = address(_proxy).call(upgradeCalls[_currentVersion]);
-                if (!success) {
-                    emit UpgradeFailure(address(_proxy), priorImplementation, address(nextImplementation), result);
-                    // revert upgrade and stop
-                    _proxy.upgradeTo(priorImplementation);
-                    return;
-                }
-            }
-            priorImplementation = nextImplementation;
+        address finalImplementation = currentImplementation;
+        if (priorImplementation != finalImplementation) {
+            _proxy.upgradeTo(finalImplementation);
         }
     }
 

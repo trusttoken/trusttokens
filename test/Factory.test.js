@@ -84,11 +84,12 @@ contract('StakingOpportunityFactory', function(accounts) {
 
             // migrate
             const migration1 = await StakedTokenProxyMigrationMock.new()
-            await this.factory.appendMigration(migration1.address, '0x3f9c81c0' + uint256Bytes32(42), {from:owner}) // onUpgrade(42)
-            await this.factory.migrateFrom(stakingProxy.address, 0, 1)
+            await this.factory.upgradeAllTo(migration1.address, {from:owner})
+            await this.factory.migrate(stakingProxy.address)
+            await web3.eth.sendTransaction({to:stakingProxy.address, data:('0x3f9c81c0' + uint256Bytes32(42)), from:account1}) // onUpgrade(42)
             const migratedContract = await StakedTokenProxyMigrationMock.at(stakingProxy.address)
-            assert.equal(42, await migratedContract.importantNumber.call())
             assert.equal(migration1.address, await stakingProxy.implementation.call())
+            assert.equal(42, await migratedContract.importantNumber.call())
 
             // test award+claim
             await this.rewardToken.mint(oneHundred, ONE_HUNDRED_ETHER, {from:issuer});
@@ -102,6 +103,7 @@ contract('StakingOpportunityFactory', function(accounts) {
             assert.equal(second.logs[0].event, "StakingOpportunity")
             const stakingOpportunityAddress2 = second.logs[0].args.opportunity
             const stakingOpportunity2 = await StakedTokenProxyMigrationMock.at(stakingOpportunityAddress2)
+            await web3.eth.sendTransaction({to:stakingOpportunity2.address, data:('0x3f9c81c0' + uint256Bytes32(42)), from:account1}) // onUpgrade(42)
             assert.equal(42, await stakingOpportunity2.importantNumber.call())
             const stakingProxy2 = await OwnedUpgradeabilityProxy.at(stakingOpportunityAddress2)
             assert.equal(migration1.address, await stakingProxy2.implementation.call())
