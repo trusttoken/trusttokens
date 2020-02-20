@@ -29,7 +29,8 @@ contract MultisigLiquidator {
         require(_owners[0] != _owners[2], "first and last owners match");
         owners[0] = _owners[0];
         owners[1] = _owners[1];
-        owners[2] = _owners[2]; } 
+        owners[2] = _owners[2];
+    }
     function liquidator() internal view returns (Liquidator);
     event Action(uint256 indexed nonce, address indexed owner1, address indexed owner2, bytes action);
 
@@ -38,8 +39,8 @@ contract MultisigLiquidator {
         firstSignatureCandidates[0] = owners[0];
         firstSignatureCandidates[1] = owners[1];
         firstSignatureCandidates[2] = owners[2];
-        uint256 _nonce = nonce;
-        bytes memory data = abi.encodePacked(address(this), nonce++, action);
+        uint256 _nonce = nonce++;
+        bytes memory data = abi.encodePacked(address(this), _nonce, action);
         bytes32 hash = keccak256(data);
         address recoveredNoPrefix = hash.recover(signatures[0]);
         address recoveredWithPrefix = hash.toEthSignedMessageHash().recover(signatures[0]);
