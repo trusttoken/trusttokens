@@ -35,6 +35,7 @@ const DEFAULT_RATIO = BN(1000);
 const ERC20_KIND = '0x36372b07'
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 const { addressBytes32, uint256Bytes32 } = require('./lib/abi.js')
+const { hashDomain, Order } = require('./lib/airswap.js')
 const { signAction } = require('./lib/multisigLiquidator.js')
 
 
@@ -173,7 +174,7 @@ contract('Deployment', function(accounts) {
                                     this.transferHandlerRegistry = await TransferHandlerRegistry.new({from: deployer})
                                     this.transferHandlerRegistry.addTransferHandler(ERC20_KIND, this.transferHandler.address,{from:deployer})
                                     this.airswap = await Airswap.new(this.transferHandlerRegistry.address, {from:deployer})
-                                    await this.registry.setAttributeValue(this.airswap.address, AIRSWAP_VALIDATOR, 1, {from:owner})
+                                    await this.registry.setAttributeValue(this.airswap.address, AIRSWAP_VALIDATOR, hashDomain(this.airswap.address), {from:owner})
                                 })
                                 describe('Factory', function() {
                                     beforeEach(async function() {
@@ -209,6 +210,18 @@ contract('Deployment', function(accounts) {
                                                 assert(ONE_HUNDRED_BITCOIN.eq(await this.trust.balanceOf(approvedBeneficiary)))
                                             })
                                             it('can reclaim', async function() {
+                                                const action = web3.utils.sha3('reclaim(address,int256)').slice(0, 10) + addressBytes32(approvedBeneficiary) + uint256Bytes32(ONE_HUNDRED_ETHER)
+                                                const sig1 = await signAction(manager, this.multisigLiquidator.address, 2, action)
+                                                const sig2 = await signAction(owner, this.multisigLiquidator.address, 2, action)
+                                                await this.multisigLiquidator.reclaim(approvedBeneficiary, ONE_HUNDRED_ETHER, [sig1, sig2])
+                                            })
+                                            it('can reclaim with airswap', async function() {
+                                                let expiry = parseInt(Date.now() / 1000) + 12000
+                                                await this.tusd.approve(this.airswap.address, ONE_HUNDRED_ETHER, {from:oneHundred})
+                                                await this.tusd.mint(oneHundred, ONE_HUNDRED_ETHER, {from:fakeController})
+                                                let order = new Order(0, expiry, this.airswap.address, oneHundred, ONE_HUNDRED_ETHER, this.tusd.address, this.liquidator.address, ONE_HUNDRED_BITCOIN, this.trust.address)
+                                                await order.sign()
+                                                await this.liquidator.registerAirswap(order.web3Tuple)
                                                 const action = web3.utils.sha3('reclaim(address,int256)').slice(0, 10) + addressBytes32(approvedBeneficiary) + uint256Bytes32(ONE_HUNDRED_ETHER)
                                                 const sig1 = await signAction(manager, this.multisigLiquidator.address, 2, action)
                                                 const sig2 = await signAction(owner, this.multisigLiquidator.address, 2, action)
