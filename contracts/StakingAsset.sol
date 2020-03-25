@@ -279,7 +279,7 @@ contract StakedToken is ValTokenWithHook {
     }
 
     /**
-     * @dev
+     * @dev Transfer awards to the staking pool
      * @param _amount of rewardAsset to award
      */
     function award(uint256 _amount) external {
@@ -287,8 +287,8 @@ contract StakedToken is ValTokenWithHook {
     }
 
     /**
-     * @dev
-     * @param
+     * @dev Award stakig pool.
+     * @param _amount amount of rewardAsset to reward
      */
     function _award(uint256 _amount) internal {
         uint256 remainder = rewardsRemainder.add(_amount, "rewards overflow");
