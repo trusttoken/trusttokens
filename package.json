@@ -29,6 +29,7 @@
   },
   "homepage": "https://github.com/trusttoken/trusttokens#readme",
   "devDependencies": {
+    "babel-preset-stage-2": "^6.24.1",
     "babel-register": "6.26.0",
     "solidity-coverage": "^0.7.0"
   }

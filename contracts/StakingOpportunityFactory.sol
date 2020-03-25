@@ -23,7 +23,7 @@ contract StakingOpportunityFactory {
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     event StakingOpportunity(StakedToken indexed opportunity, bool indexed upgradeable);
     event UpgradeFailure(address indexed proxy, address indexed priorImplementation, address indexed nextImplementation, bytes failure);
- 
+
     function createStakingOpportunity(StakingAsset _stakeAsset, StakingAsset _rewardAsset, address _liquidator) external returns (StakedToken) {
         StakedToken result = new MockStakedToken(_stakeAsset, _rewardAsset, Registry(address(this)), _liquidator);
         registry.setAttributeValue(address(result), IS_REGISTERED_CONTRACT, 1);
