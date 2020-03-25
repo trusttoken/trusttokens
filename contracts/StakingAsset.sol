@@ -12,8 +12,8 @@ contract StakingAsset is IERC20 {
 
 /**
  * @title StakedToken
- * @notify Single token staking model for ERC-20
- * @dev StakedToken represents a share in an Assurace Pool.
+ * @dev Single token staking model for ERC-20
+ * StakedToken represents a share in an Assurace Pool.
  * Accounts stake ERC-20 staking asset and recieve ERC-20 reward asset.
  * StakingOpportunityFactory creates instances of StakedToken
  */

@@ -5,9 +5,9 @@ import "./mocks/StakedTokenProxyImplementation.sol";
 import "../true-currencies/contracts/Proxy/OwnedUpgradeabilityProxy.sol";
 
 /**
- * @name StakingOpportunityFactory
- * @notify A Registry for creating staking opportunities.
- * @dev Creates and tracks instances of StakedTokens (staking opportunities)
+ * @title StakingOpportunityFactory
+ * @dev A Registry for creating staking opportunities.
+ * Creates and tracks instances of StakedTokens (staking opportunities)
  * Duplicates some ownership logic but with different storage.
  * Referenes the actual registry and has support for upgrade calls.
  */
@@ -26,8 +26,8 @@ contract StakingOpportunityFactory {
 	bytes32 constant IS_REGISTERED_CONTRACT = "isRegisteredContract";
 
 	/**
-	 * @notify Constructor for StakingOpportunityFactory.
-	 * @dev Initializes contract with real registry and first implementation.
+	 * @dev Constructor for StakingOpportunityFactory.
+	 * Initializes contract with real registry and first implementation.
 	 * @param _registry registry to set (should be actual registry)
 	 */
 	constructor(Registry _registry, address /*StakedTokenProxyImplementation*/ _implementation) public {
@@ -43,8 +43,8 @@ contract StakingOpportunityFactory {
 	event UpgradeFailure(address indexed proxy, address indexed priorImplementation, address indexed nextImplementation, bytes failure);
 
 	/** 
-	 * @notify Creates a StakedToken (staking opportunity)
-	 * @dev Given a staking asset, reward asset, and liqudiator address creates
+	 * @dev Creates a StakedToken (staking opportunity)
+	 * Given a staking asset, reward asset, and liqudiator address creates
 	 * a new staking opportunity and stores it in registry.
 	 * @param _stakeAsset Asset to stake. Usually TRUST.
 	 * @param _rewardAsset Asset to reward. Usually TUSD.
@@ -60,8 +60,8 @@ contract StakingOpportunityFactory {
 	}
 
 	/**
-	 * @notify Creates a StakedToken (staking opportunity)
-	 * @dev Given a staking asset, reward asset, and liqudiator address creates
+	 * @dev Creates a StakedToken (staking opportunity)
+	 * Given a staking asset, reward asset, and liqudiator address creates
 	 * a new proxy staking opportunity and stores it in registry.
 	 * @param _stakeAsset Asset to stake. Usually TRUST.
 	 * @param _rewardAsset Asset to reward. Usually TUSD.
@@ -84,7 +84,6 @@ contract StakingOpportunityFactory {
 	}
 
 	/**
-	 * @notify Sync attribute values. 
 	 * @dev Sync attribute values to children. 
 	 * @param attribute attribute to sync
 	 * @param accounts accounts to sync from
@@ -103,8 +102,8 @@ contract StakingOpportunityFactory {
 	bytes32 constant EMPTY_CONTRACT = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
 
 	/**
-	 * @notify Upgrade all StakingAssets to new implementation
-	 * @dev Only owner can set a new implementation.
+	 * @dev Upgrade all StakingAssets to new implementation
+	 * Only owner can set a new implementation.
 	 * @param _implementation new implementation
 	 */
 	function upgradeAllTo(address _implementation) onlyOwner external {
@@ -126,14 +125,14 @@ contract StakingOpportunityFactory {
 	}
 
 	/**
-	 * @notify Transfer ownership of this contract.
+	 * @dev Transfer ownership of this contract.
 	 */
 	function transferOwnership(address newOwner) public onlyOwner {
 		pendingOwner = newOwner;
 	}
 
 	/**
-	 * @notify Claim ownership of this contract.
+	 * @dev Claim ownership of this contract.
 	 */
 	function claimOwnership() public onlyPendingOwner {
 		emit OwnershipTransferred(owner, pendingOwner);
@@ -142,8 +141,7 @@ contract StakingOpportunityFactory {
 	}
 
 	/**
-	 * @dev
-	 * Migrate function is callable by anyone as long as it has proxy approval.
+	 * @dev Migrate function is callable by anyone as long as it has proxy approval.
 	 * Migrations are not foolproof, must be very careful when migrating.
 	 * Risk is that if we store a bad upgrade implementation it will break.
 	 */
@@ -157,7 +155,6 @@ contract StakingOpportunityFactory {
 	}
 
 	/**
-	 * @notify Get attribute value from registry.
 	 * @dev Gets attribute value and forwards to real registry
 	 * @param _account accout to request value from.
 	 * @param _attribute attribute requested

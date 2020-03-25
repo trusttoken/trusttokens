@@ -8,15 +8,18 @@ import "../true-currencies/registry/contracts/Registry.sol";
 import "wjm-airswap-swap/contracts/Swap.sol";
 
 /**
- * @notify Program that executes a trade
- * @dev All of these are created by the liquidator
+ * @dev Program that executes a trade
+ * TradeExecutor is a contract that executes a trade
+ * It's much cheaper to deploy and run a contract than to
+ * execute in the liquidator
+ * TradeExecutor is called via delegatecall
  */
 interface TradeExecutor {
 }
 
 /**
- * @notify Uniswap
- * @dev This is nessesary since Uniswap is written in vyper.
+ * @dev Uniswap
+ * This is nessesary since Uniswap is written in vyper.
  */
 interface UniswapV1 {
     function tokenToExchangeSwapInput(uint256 tokensSold, uint256 minTokensBought, uint256 minEthBought, uint256 deadline, UniswapV1 exchangeAddress) external returns (uint256 tokensBought);
@@ -26,8 +29,8 @@ interface UniswapV1 {
 }
 
 /**
- * @notify Uniswap Factory
- * @dev This is nessesary since Uniswap is written in vyper.
+ * @dev Uniswap Factory
+ * This is nessesary since Uniswap is written in vyper.
  */
 interface UniswapV1Factory {
     function getExchange(IERC20 token) external returns (UniswapV1);
@@ -36,13 +39,13 @@ interface UniswapV1Factory {
 
 /**
  * @title Liquidator
- * @notify Liquidate staked tokenns on uniswap.
- * @dev
+ * @dev Liquidate staked tokenns on uniswap.
  * Airswap uses domainSeparators to validate transactions and prevent replay protection
  * When signing an airswap order we require specification of which validator we are using.
  * This is because there are multiple instances of AirswapV2.
  * StakingOpportunityFactory does not create a Liquidator, rather this must be created
  * Outside of the factory.
+ * prune() removes all orders that would fail from 
  */
 contract Liquidator {
     using ValSafeMath for uint256;
@@ -59,17 +62,13 @@ contract Liquidator {
     // mappings updated in syncAttributeValue
     // signedTypedData standard
     mapping (address => bytes32) domainSeparators;
-    /**
-        We DELEGATECALL into orders to invoke them
-        Invariant: orders are sorted by greatest price
-    */
 
-    // contracts that execute airswaps
-    // head and tail are mapped to zero
-    // remains sorted by greatest price
-    // sorted singly-linked list
-    // each trade is a contract that executes the trade
-    // it's much much cheaper to deploy a contract to execute the trade
+    // Orders are contracts that execute airswaps
+    // We DELEGATECALL into orders to invoke them
+    // Orders are stored in this mapping as a sorted singly linkedlist
+    // Invariant: orders are sorted by greatest price
+    // Linked list head and tail are mapped to zero
+    // It's much much cheaper to deploy a contract to execute the trade
     mapping (/* TradeExecutor */ address => TradeExecutor) public next;
 
     // constants
@@ -87,17 +86,17 @@ contract Liquidator {
     // these variables must be known at construction time
     // MockLiquidator is the actual implementation of Liquidator
 
-    /** @notify Get output token (token to get from liqudiation exchange). */
+    /** @dev Get output token (token to get from liqudiation exchange). */
     function outputToken() internal view returns (IERC20);
-    /** @notify Get stake token (token to be liquidated). */
+    /** @dev Get stake token (token to be liquidated). */
     function stakeToken() internal view returns (IERC20);
-    /** @notify Output token on uniswap. */
+    /** @dev Output token on uniswap. */
     function outputUniswapV1() internal view returns (UniswapV1);
-    /** @notify Stake token on uniswap. */
+    /** @dev Stake token on uniswap. */
     function stakeUniswapV1() internal view returns (UniswapV1);
-    /** @notify Contract registry. */
+    /** @dev Contract registry. */
     function registry() internal view returns (Registry);
-    /** @notify Address of staking pool. */
+    /** @dev Address of staking pool. */
     function pool() internal view returns (address);
 
     /** @dev transfer ownership to sender */
@@ -180,8 +179,8 @@ contract Liquidator {
     }
 
     /**
-     * @notify Calculate how much output we get for a stake input amount
-     * @dev Much cheaper to do this logic ourselves locally than an external call
+     * @dev Calculate how much output we get for a stake input amount
+     * Much cheaper to do this logic ourselves locally than an external call
      * Allows us to do this multiple times in one transaction
      * See ./uniswap/uniswap_exchange.vy
      */
@@ -192,7 +191,7 @@ contract Liquidator {
     }
 
     /** 
-     * @notify Calcualte how much input we need to get a desired output
+     * @dev Calcualte how much input we need to get a desired output
      * Is able to let us know if there is slippage in uniswap exchange rate
      * and continue with Airswap
      * See./uniswap/uniswap_exchange.vy
@@ -213,8 +212,8 @@ contract Liquidator {
     }
 
     /**
-     * @notify Transfer stake without liquidation
-     * @dev requires LIQUIDATOR_CAN_RECEIVE flag (recipient must be registered)
+     * @dev Transfer stake without liquidation
+     * requires LIQUIDATOR_CAN_RECEIVE flag (recipient must be registered)
      */
     function reclaimStake(address _destination, uint256 _stake) external onlyOwner {
         require(attributes[_destination] & LIQUIDATOR_CAN_RECEIVE != 0, "unregistered recipient");
@@ -222,17 +221,17 @@ contract Liquidator {
     }
 
     /**
-     * @notify Award stake tokens to stakers.
-     * @dev Transfer to the pool without creating a staking position.
+     * @dev Award stake tokens to stakers.
+     * Transfer to the pool without creating a staking position.
      * Allows us to reward as staking or reward token.
      */
     function returnStake(address _from, uint256 balance) external {
         stakeToken().transferFrom(_from, pool(), balance);
     }
 
-    /** 
-     * @notify Sells stake for underlying asset and pays to destination.
-     * @dev Use airswap trades as long as they're better than uniswap.
+    /**
+     * @dev Sells stake for underlying asset and pays to destination.
+     * Use airswap trades as long as they're better than uniswap.
      * Contract won't slip Uniswap this way.
      * If we reclaim more than we actually owe we award to stakers.
      * Not possible to convert back into TrustTokens here.
@@ -421,8 +420,8 @@ contract Liquidator {
     }
 
     /**
-     * @notify Copies airswap info into memory and returns it
-     * @dev Uses extcodecopy
+     * @dev Copies airswap info into memory and returns it
+     * Uses extcodecopy
      * Needs to return a FlatOrder instead of an Order to save space in memory
      */
     function airswapOrderInfo(TradeExecutor _airswapOrderContract) public view returns (FlatOrder memory order) {
@@ -437,17 +436,15 @@ contract Liquidator {
     bytes32 constant ZERO_PARTY_HASH = 0xb3df6f92b1402b8652ec14dde0ab8816789b2da8a6b0962109a31f4c72c625d2;
 
     /**
-     * @notify Calculate signature for airswap
-     * @dev 
+     * @dev Calculate signature for airswap
      */
     function hashERC20Party(Party memory _party) internal pure returns (bytes32) {
         return keccak256(abi.encode(PARTY_TYPEHASH, ERC20_KIND, _party.wallet, _party.token, _party.amount, _party.id));
     }
 
     /**
-     * @notify Return true if valid airswap signatory
-     * @dev can sign on someone else's behalf if authorized
-     * Check 
+     * @dev Return true if valid airswap signatory
+     * Can sign on someone else's behalf if authorized
      */
     function validAirswapSignatory(Swap validator, address signer, address signatory) internal view returns (bool) {
         if (signatory == signer) {
@@ -457,8 +454,7 @@ contract Liquidator {
     }
 
     /**
-     * @notify Return true if valid airswap signature
-     * @dev 
+     * @dev Return true if valid airswap signature
      */
     function validAirswapSignature(Order memory _order) internal view returns (bool) {
         bytes32 hash = keccak256(abi.encodePacked(EIP191_HEADER, domainSeparators[_order.signature.validator], keccak256(abi.encode(ORDER_TYPEHASH, _order.nonce, _order.expiry, hashERC20Party(_order.signer), hashERC20Party(_order.sender), ZERO_PARTY_HASH))));
@@ -472,8 +468,8 @@ contract Liquidator {
     }
 
     /**
-     * @notify Register Valid Airswap
-     * @dev Ensures a bunch of logic to regsiter a valid airswap order
+     * @dev Register Valid Airswap
+     * Ensures a bunch of logic to regsiter a valid airswap order
      * Prevent really large orders that would cause overflow
      * Ensures correct exchange of token types
      * Ensures no affiliate in airswap order
@@ -585,8 +581,8 @@ contract Liquidator {
     }
 
     /**
-     * @notify return True if an order is prunable
-     * @dev If the order cannot be executed at this moment, it is prunable
+     * @dev return True if an order is prunable
+     * If the order cannot be executed at this moment, it is prunable
      * No need to check things immutably true that were checked during registration
      */
     function prunableOrder(FlatOrder memory _order) internal view returns (bool) {
@@ -616,8 +612,8 @@ contract Liquidator {
     }
 
     /**
-     * @notify Remove all orders that would fail
-     * @dev Remove all orders worse than what is available in uniswap
+     * @dev Remove all orders that would fail
+     * Remove all orders worse than what is available in uniswap
      * Much cheaper to prune than to run an order that would fail
      */
     function prune() external {
