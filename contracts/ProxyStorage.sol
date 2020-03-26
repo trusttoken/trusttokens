@@ -1,6 +1,6 @@
 pragma solidity ^0.5.13;
 
-import "../true-currencies/registry/contracts/Registry.sol";
+import "@trusttoken/registry/contracts/Registry.sol";
 
 /**
  * All storage must be declared here
