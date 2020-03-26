@@ -7,7 +7,6 @@ allFiredEvents
 coverage
 coverage.json
 coverageEnv
-package-lock.json
 
 
 *.swo
