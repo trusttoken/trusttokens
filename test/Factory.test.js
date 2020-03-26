@@ -9,7 +9,7 @@ const StakedTokenProxyMigrationMock = artifacts.require('StakedTokenProxyMigrati
 
 const bytes32 = require('../true-currencies/test/helpers/bytes32.js')
 const assertRevert = require('../true-currencies/test/helpers/assertRevert.js')['default']
-const writeAttributeFor = require('../true-currencies/registry/test/helpers/writeAttributeFor.js')
+const writeAttributeFor = require('@trusttoken/registry/test/helpers/writeAttributeFor.js')
 
 const IS_DEPOSIT_ADDRESS = bytes32('isDepositAddress')
 const IS_REGISTERED_CONTRACT = bytes32('isRegisteredContract')

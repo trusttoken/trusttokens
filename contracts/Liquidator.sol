@@ -4,7 +4,7 @@ pragma experimental ABIEncoderV2;
 
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "./ValSafeMath.sol";
-import "../true-currencies/registry/contracts/Registry.sol";
+import "@trusttoken/registry/contracts/Registry.sol";
 import "wjm-airswap-swap/contracts/Swap.sol";
 
 /**
@@ -45,7 +45,7 @@ interface UniswapV1Factory {
  * This is because there are multiple instances of AirswapV2.
  * StakingOpportunityFactory does not create a Liquidator, rather this must be created
  * Outside of the factory.
- * prune() removes all orders that would fail from 
+ * prune() removes all orders that would fail from
  */
 contract Liquidator {
     using ValSafeMath for uint256;
@@ -105,8 +105,8 @@ contract Liquidator {
         emit OwnershipTransferred(address(0), owner);
     }
 
-    /** 
-     * @dev implementation constructor needs to call initialize 
+    /**
+     * @dev implementation constructor needs to call initialize
      * Here we approve transfers to uniswap for the staking and output token
      */
     function initialize() internal {
@@ -147,7 +147,7 @@ contract Liquidator {
     }
 
     /**
-     * @dev Two flags are supported by this function: 
+     * @dev Two flags are supported by this function:
      * AIRSWAP_VALIDATOR and APPROVED_BENEFICIARY
      * Can sync by saying this contract is the registry or sync from registry directly.
      * Registry decides what is a valid airswap.
@@ -190,7 +190,7 @@ contract Liquidator {
         outputAmount = (inputAmountWithFee * outputUniswapV1State.tokenBalance) / (outputUniswapV1State.etherBalance * 1000 + inputAmountWithFee);
     }
 
-    /** 
+    /**
      * @dev Calcualte how much input we need to get a desired output
      * Is able to let us know if there is slippage in uniswap exchange rate
      * and continue with Airswap
@@ -257,7 +257,7 @@ contract Liquidator {
         stakeUniswapV1State.uniswap = stakeUniswapV1();
         stakeUniswapV1State.etherBalance = address(stakeUniswapV1State.uniswap).balance;
         stakeUniswapV1State.tokenBalance = stakeToken().balanceOf(address(stakeUniswapV1State.uniswap));
-        
+
         // calculate remaining debt
         int256 remainingDebt = _debt;
 
@@ -295,7 +295,7 @@ contract Liquidator {
                     // calculate remaining debt
                     remainingDebt -= int256(order.signerAmount);
                     remainingStake -= order.senderAmount; // underflow not possible because airswap transfer succeeded
-                    
+
                     // emit liquidation and break if no more debt
                     emit Liquidated(order.senderAmount, order.signerAmount);
                     if (remainingDebt <= 0) {
@@ -318,7 +318,7 @@ contract Liquidator {
 
         // if we have remaining debt and stake, we use Uniswap
         // we can use uniswap by specifying desired output or input
-        // we 
+        // we
         if (remainingDebt > 0) {
             if (remainingStake > 0) {
                 if (outputForUniswapV1Input(remainingStake, outputUniswapV1State, stakeUniswapV1State) < uint256(remainingDebt)) {
@@ -338,7 +338,7 @@ contract Liquidator {
                     emit Liquidated(stakeSold, uint256(remainingDebt));
                     remainingDebt = 0;
                     remainingStake -= stakeSold;
-                    // 
+                    //
                     outputToken().transfer(_destination, uint256(_debt));
                 }
             }
@@ -475,7 +475,7 @@ contract Liquidator {
      * Ensures no affiliate in airswap order
      * Checks signer has the balance they are offering to exchange
      * Checks order registrant has approval
-     * 
+     *
      * Downsides:
      * Can register orders that fail, but this will be pruned very cheaply
      * Can register order and transfer in the same transaction
@@ -495,7 +495,7 @@ contract Liquidator {
         require(_order.affiliate.kind == ERC20_KIND, "affiliate erc20");
         require(outputToken().balanceOf(_order.signer.wallet) >= _order.signer.amount, "insufficient signer balance");
         require(outputToken().allowance(_order.signer.wallet, _order.signature.validator) >= _order.signer.amount, "insufficient signer allowance");
-        uint256 poolBalance = stakeToken().balanceOf(pool()); 
+        uint256 poolBalance = stakeToken().balanceOf(pool());
         require(poolBalance >= _order.sender.amount, "insufficient pool balance");
         // verify senderAmount / poolBalance > swapGasCost / blockGasLimit
         require(_order.sender.amount.mul(block.gaslimit, "senderAmount overflow") > poolBalance.mul(SWAP_GAS_COST, "poolBalance overflow"), "order too small");
@@ -604,7 +604,7 @@ contract Liquidator {
         if (Swap(_order.validator).signerMinimumNonce(_order.signerWallet) > _order.nonce) {
             return true;
         }
-        // check signatory has not been revoked 
+        // check signatory has not been revoked
         if (!validAirswapSignatory(Swap(_order.validator), _order.signerWallet, _order.signatory)) {
             return true;
         }
