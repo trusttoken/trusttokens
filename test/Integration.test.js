@@ -18,7 +18,7 @@ const UniswapExchange = artifacts.require('uniswap_exchange')
 
 const timeMachine = require('ganache-time-traveler')
 const bytes32 = require('@trusttoken/registry/test/helpers/bytes32.js')
-const assertRevert = require('@trusttoken/registry/test/helpers/assertRevert.js')['default']
+const assertRevert = require('@trusttoken/registry/test/helpers/assertRevert.js')
 const writeAttributeFor = require('@trusttoken/registry/test/helpers/writeAttributeFor.js')
 const IS_DEPOSIT_ADDRESS = bytes32('isDepositAddress')
 const IS_REGISTERED_CONTRACT = bytes32('isRegisteredContract')
