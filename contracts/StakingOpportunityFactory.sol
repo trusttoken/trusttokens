@@ -2,7 +2,7 @@ pragma solidity ^0.5.13;
 
 import "./mocks/MockStakedToken.sol";
 import "./mocks/StakedTokenProxyImplementation.sol";
-import "../true-currencies/contracts/Proxy/OwnedUpgradeabilityProxy.sol";
+import "./Proxy/OwnedUpgradeabilityProxy.sol";
 
 /**
  * @title StakingOpportunityFactory
@@ -42,7 +42,7 @@ contract StakingOpportunityFactory {
 	event StakingOpportunity(StakedToken indexed opportunity, bool indexed upgradeable);
 	event UpgradeFailure(address indexed proxy, address indexed priorImplementation, address indexed nextImplementation, bytes failure);
 
-	/** 
+	/**
 	 * @dev Creates a StakedToken (staking opportunity)
 	 * Given a staking asset, reward asset, and liqudiator address creates
 	 * a new staking opportunity and stores it in registry.
@@ -84,7 +84,7 @@ contract StakingOpportunityFactory {
 	}
 
 	/**
-	 * @dev Sync attribute values to children. 
+	 * @dev Sync attribute values to children.
 	 * @param attribute attribute to sync
 	 * @param accounts accounts to sync from
 	 * @param subscribers subscribers to sync to
