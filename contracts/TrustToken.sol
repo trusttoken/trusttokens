@@ -4,6 +4,13 @@ import "./ClaimableContract.sol";
 import "./ValTokenWithHook.sol";
 
 
+/**
+ * @title TrustToken
+ * @dev The TrustToken contract is a claimable contract where the 
+ * owner can only mint or transfer ownership. TrustTokens use 8 decimals
+ * in order to prevent rewards from getting stuck in the remainder on division.
+ * Tolerates dilution to slash stake and accept rewards.
+ */
 contract TrustToken is ValTokenWithHook, ClaimableContract {
     function decimals() public pure returns (uint8) {
         return 8;
