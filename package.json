@@ -12,7 +12,7 @@
     "url": "git+https://github.com/trusttoken/trusttokens.git"
   },
   "author": "William Morriss",
-  "license": "MIT",
+  "license" : "SEE LICENSE IN ./LICENSE",
   "bugs": {
     "url": "https://github.com/trusttoken/trusttokens/issues"
   },
