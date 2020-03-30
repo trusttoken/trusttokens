@@ -1,6 +1,6 @@
 {
-  "name": "trusttokens",
-  "version": "0.0.1",
+  "name": "@trusttoken/trusttokens",
+  "version": "0.1.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -16,6 +16,9 @@
   "bugs": {
     "url": "https://github.com/trusttoken/trusttokens/issues"
   },
+  "files": [
+    "contracts"
+  ],
   "dependencies": {
     "@trusttoken/registry": "0.1.2",
     "openzeppelin-solidity": "2.4.0",
