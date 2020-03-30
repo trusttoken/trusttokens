@@ -2,12 +2,12 @@ const Registry = artifacts.require('RegistryMock')
 const StakedToken = artifacts.require('MockStakedToken')
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy')
 const TrustToken = artifacts.require('MockTrustToken')
-const TrueUSD = artifacts.require('TrueUSD')
+const ValTokenWithHook = artifacts.require('MockERC20Token')
 const StakingOpportunityFactory = artifacts.require('StakingOpportunityFactory')
 const StakedTokenProxyImplementation = artifacts.require('StakedTokenProxyImplementation')
 const StakedTokenProxyMigrationMock = artifacts.require('StakedTokenProxyMigrationMock')
 
-const bytes32 = require('trusttoken/registry/test/helpers/bytes32.js')
+const bytes32 = require('@trusttoken/registry/test/helpers/bytes32.js')
 const writeAttributeFor = require('@trusttoken/registry/test/helpers/writeAttributeFor.js')
 
 const IS_DEPOSIT_ADDRESS = bytes32('isDepositAddress')
@@ -27,7 +27,7 @@ contract('StakingOpportunityFactory', function(accounts) {
     const [_, owner, issuer, oneHundred, account1, account2, kycAccount, fakeLiquidator] = accounts
     beforeEach(async function() {
         this.registry = await Registry.new({ from: owner });
-        this.rewardToken = await TrueUSD.new({ from: issuer });
+        this.rewardToken = await ValTokenWithHook.new({ from: issuer });
         this.stakeToken = await TrustToken.new(this.registry.address, { from: issuer });
         await this.rewardToken.setRegistry(this.registry.address, {from: issuer})
         await this.rewardToken.mint(oneHundred, ONE_HUNDRED_ETHER, {from:issuer});
