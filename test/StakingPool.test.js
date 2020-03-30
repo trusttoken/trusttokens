@@ -4,8 +4,8 @@ const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy')
 const TrustToken = artifacts.require('MockTrustToken')
 const TrueUSD = artifacts.require('TrueUSD')
 
-const bytes32 = require('../true-currencies/test/helpers/bytes32.js')
-const assertRevert = require('../true-currencies/test/helpers/assertRevert.js')['default']
+const bytes32 = require('@trusttoken/factory/test/helpers/bytes32.js')
+const assertRevert = require('@trusttoken/factory/test/helpers/assertRevert.js')
 
 const IS_DEPOSIT_ADDRESS = bytes32('isDepositAddress')
 const IS_REGISTERED_CONTRACT = bytes32('isRegisteredContract')

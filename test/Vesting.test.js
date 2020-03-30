@@ -2,7 +2,7 @@ const Registry = artifacts.require('RegistryMock')
 const TrustToken = artifacts.require('MockTrustToken')
 const Vesting = artifacts.require('VestingMock')
 const BN = web3.utils.toBN
-const assertRevert = require('../true-currencies/test/helpers/assertRevert.js')['default']
+const assertRevert = require('@trusttoken/factory/test/helpers/assertRevert.js')
 const ONE_HUNDRED = BN(100).mul(BN(1e18))
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 

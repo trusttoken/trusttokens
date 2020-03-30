@@ -7,8 +7,7 @@ const StakingOpportunityFactory = artifacts.require('StakingOpportunityFactory')
 const StakedTokenProxyImplementation = artifacts.require('StakedTokenProxyImplementation')
 const StakedTokenProxyMigrationMock = artifacts.require('StakedTokenProxyMigrationMock')
 
-const bytes32 = require('../true-currencies/test/helpers/bytes32.js')
-const assertRevert = require('../true-currencies/test/helpers/assertRevert.js')['default']
+const bytes32 = require('trusttoken/registry/test/helpers/bytes32.js')
 const writeAttributeFor = require('@trusttoken/registry/test/helpers/writeAttributeFor.js')
 
 const IS_DEPOSIT_ADDRESS = bytes32('isDepositAddress')

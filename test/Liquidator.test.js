@@ -2,7 +2,7 @@ const Liquidator = artifacts.require('LiquidatorMock')
 const BN = web3.utils.toBN
 const ONE_ETHER = BN(1e18)
 const ONE_HUNDRED_ETHER = BN(100).mul(ONE_ETHER)
-const assertRevert = require('../true-currencies/test/helpers/assertRevert.js')['default']
+const assertRevert = require('@trusttoken/factory/test/helpers/assertRevert.js')
 const MockTrustToken = artifacts.require('MockTrustToken')
 const TrueUSD = artifacts.require('TrueUSD')
 const Airswap = artifacts.require('Swap')
@@ -16,7 +16,7 @@ const Types = artifacts.require('Types')
 const ERC20_KIND = '0x36372b07'
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000'
-const bytes32 = require('../true-currencies/test/helpers/bytes32.js')
+const bytes32 = require('@trusttoken/factory/test/helpers/bytes32.js')
 const AIRSWAP_VALIDATOR = bytes32('AirswapValidatorDomain')
 const APPROVED_BENEFICIARY = bytes32('approvedBeneficiary')
 
