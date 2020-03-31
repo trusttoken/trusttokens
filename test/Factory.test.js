@@ -5,7 +5,7 @@ const TrustToken = artifacts.require('MockTrustToken')
 const ValTokenWithHook = artifacts.require('MockERC20Token')
 const StakingOpportunityFactory = artifacts.require('StakingOpportunityFactory')
 const StakedTokenProxy = artifacts.require('StakedTokenProxy')
-const StakedTokenProxyMigrationMock = artifacts.require('StakedTokenProxyMigrationMock')
+const StakedTokenProxyMigration = artifacts.require('StakedTokenProxyMigration')
 
 const bytes32 = require('@trusttoken/registry/test/helpers/bytes32.js')
 const writeAttributeFor = require('@trusttoken/registry/test/helpers/writeAttributeFor.js')
@@ -82,11 +82,11 @@ contract('StakingOpportunityFactory', function(accounts) {
             assert.equal(await stakingProxy.implementation.call(), this.implementation.address)
 
             // migrate
-            const migration1 = await StakedTokenProxyMigrationMock.new()
+            const migration1 = await StakedTokenProxyMigration.new()
             await this.factory.upgradeAllTo(migration1.address, {from:owner})
             await this.factory.migrate(stakingProxy.address)
             await web3.eth.sendTransaction({to:stakingProxy.address, data:('0x3f9c81c0' + uint256Bytes32(42)), from:account1}) // onUpgrade(42)
-            const migratedContract = await StakedTokenProxyMigrationMock.at(stakingProxy.address)
+            const migratedContract = await StakedTokenProxyMigration.at(stakingProxy.address)
             assert.equal(migration1.address, await stakingProxy.implementation.call())
             assert.equal(42, await migratedContract.importantNumber.call())
 
@@ -101,7 +101,7 @@ contract('StakingOpportunityFactory', function(accounts) {
             const second = await this.factory.createProxyStakingOpportunity(this.stakeToken.address, this.rewardToken.address, fakeLiquidator)
             assert.equal(second.logs[0].event, "StakingOpportunity")
             const stakingOpportunityAddress2 = second.logs[0].args.opportunity
-            const stakingOpportunity2 = await StakedTokenProxyMigrationMock.at(stakingOpportunityAddress2)
+            const stakingOpportunity2 = await StakedTokenProxyMigration.at(stakingOpportunityAddress2)
             await web3.eth.sendTransaction({to:stakingOpportunity2.address, data:('0x3f9c81c0' + uint256Bytes32(42)), from:account1}) // onUpgrade(42)
             assert.equal(42, await stakingOpportunity2.importantNumber.call())
             const stakingProxy2 = await OwnedUpgradeabilityProxy.at(stakingOpportunityAddress2)
