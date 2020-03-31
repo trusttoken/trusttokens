@@ -1,7 +1,7 @@
 # TrustToken README
 TrustToken is a general assurance system. You provide assurance on any assurance opportunity, you get rewards in exchange for taking on risk. Each assurance opportunity has a pre-defined trigger for when TrustToken assurance is liquidated.
 
-##0. Setup
+## 0. Setup
 ```
 npm install
 brew install python3
