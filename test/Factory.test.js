@@ -1,10 +1,10 @@
 const Registry = artifacts.require('RegistryMock')
-const StakedToken = artifacts.require('MockStakedToken')
+const StakedToken = artifacts.require('StakedToken')
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy')
 const TrustToken = artifacts.require('MockTrustToken')
 const ValTokenWithHook = artifacts.require('MockERC20Token')
 const StakingOpportunityFactory = artifacts.require('StakingOpportunityFactory')
-const StakedTokenProxyImplementation = artifacts.require('StakedTokenProxyImplementation')
+const StakedTokenProxy = artifacts.require('StakedTokenProxy')
 const StakedTokenProxyMigrationMock = artifacts.require('StakedTokenProxyMigrationMock')
 
 const bytes32 = require('@trusttoken/registry/test/helpers/bytes32.js')
@@ -33,7 +33,7 @@ contract('StakingOpportunityFactory', function(accounts) {
         await this.rewardToken.mint(oneHundred, ONE_HUNDRED_ETHER, {from:issuer});
         await this.stakeToken.mint(oneHundred, ONE_HUNDRED_BITCOIN, {from:issuer});
         await this.registry.setAttributeValue(kycAccount, PASSED_KYCAML, 1, {from: owner})
-        this.implementation = await StakedTokenProxyImplementation.new()
+        this.implementation = await StakedTokenProxy.new()
         this.factory = await StakingOpportunityFactory.new(this.registry.address, this.implementation.address, {from:owner})
         await this.registry.setAttributeValue(this.factory.address, writeAttributeFor(IS_REGISTERED_CONTRACT), 1, {from:owner})
         await this.registry.subscribe(IS_REGISTERED_CONTRACT, this.stakeToken.address, {from:owner})

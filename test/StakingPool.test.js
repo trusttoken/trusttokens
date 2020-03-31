@@ -1,5 +1,5 @@
 const Registry = artifacts.require('RegistryMock')
-const StakedToken = artifacts.require('MockStakedToken')
+const StakedToken = artifacts.require('StakedToken')
 const TrustToken = artifacts.require('MockTrustToken')
 const TrueUSD = artifacts.require('MockERC20Token')
 

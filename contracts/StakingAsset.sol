@@ -11,13 +11,13 @@ contract StakingAsset is IERC20 {
 }
 
 /**
- * @title StakedToken
+ * @title Abstract StakedToken
  * @dev Single token staking model for ERC-20
  * StakedToken represents a share in an Assurace Pool.
  * Accounts stake ERC-20 staking asset and recieve ERC-20 reward asset.
  * StakingOpportunityFactory creates instances of StakedToken
  */
-contract StakedToken is ValTokenWithHook {
+contract AStakedToken is ValTokenWithHook {
     using ValSafeMath for uint256;
 
     // current representation of rewards per stake

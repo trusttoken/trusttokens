@@ -1,7 +1,7 @@
 pragma solidity ^0.5.13;
 
-import "./mocks/MockStakedToken.sol";
-import "./mocks/StakedTokenProxyImplementation.sol";
+import "./StakedToken.sol";
+import "./StakedTokenProxy.sol";
 import "./Proxy/OwnedUpgradeabilityProxy.sol";
 
 /**
@@ -17,7 +17,7 @@ contract StakingOpportunityFactory {
 	Registry public registry; // actual registry
 
 	// initial implemetation
-	/*StakedTokenProxyImplementation*/ address public initializer;
+	/*StakedTokenProxy*/ address public initializer;
 
 	// current implementation
 	address public currentImplementation;
@@ -30,7 +30,7 @@ contract StakingOpportunityFactory {
 	 * Initializes contract with real registry and first implementation.
 	 * @param _registry registry to set (should be actual registry)
 	 */
-	constructor(Registry _registry, address /*StakedTokenProxyImplementation*/ _implementation) public {
+	constructor(Registry _registry, address /*StakedTokenProxy*/ _implementation) public {
 		owner = msg.sender;
 		emit OwnershipTransferred(address(0), owner);
 		registry = _registry;
@@ -52,7 +52,7 @@ contract StakingOpportunityFactory {
 	 * @return StakedToken created by this contract.
 	 */
 	function createStakingOpportunity(StakingAsset _stakeAsset, StakingAsset _rewardAsset, address _liquidator) external returns (StakedToken) {
-		StakedToken result = new MockStakedToken(_stakeAsset, _rewardAsset, Registry(address(this)), _liquidator);
+		StakedToken result = new StakedToken(_stakeAsset, _rewardAsset, Registry(address(this)), _liquidator);
 		// recieve fallbacks from TrueUSD and TrustTokens
 		registry.setAttributeValue(address(result), IS_REGISTERED_CONTRACT, 1);
 		emit StakingOpportunity(result, false);
@@ -72,7 +72,7 @@ contract StakingOpportunityFactory {
 		OwnedUpgradeabilityProxy proxy = new OwnedUpgradeabilityProxy();
 		address priorImplementation = initializer;
 		proxy.upgradeTo(priorImplementation);
-		StakedTokenProxyImplementation(address(proxy)).initialize(_stakeAsset, _rewardAsset, Registry(address(this)), _liquidator);
+		StakedTokenProxy(address(proxy)).initialize(_stakeAsset, _rewardAsset, Registry(address(this)), _liquidator);
 		address finalImplementation = currentImplementation;
 		if (finalImplementation != priorImplementation) {
 			proxy.upgradeTo(finalImplementation);

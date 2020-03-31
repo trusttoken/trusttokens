@@ -1,4 +1,4 @@
-const Liquidator = artifacts.require('LiquidatorMock')
+const Liquidator = artifacts.require('Liquidator')
 const BN = web3.utils.toBN
 const ONE_ETHER = BN(1e18)
 const ONE_HUNDRED_ETHER = BN(100).mul(ONE_ETHER)
