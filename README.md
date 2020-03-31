@@ -1,5 +1,15 @@
 # TrustToken README
 TrustToken is a general assurance system. You provide assurance on any assurance opportunity, you get rewards in exchange for taking on risk. Each assurance opportunity has a pre-defined trigger for when TrustToken assurance is liquidated.
+
+##0. Setup
+```
+npm install
+brew install python3
+brew install gmp leveldb
+python3 -m venv vyper-env
+source ~/vyper-env/bin/activate
+pip install vyper==0.1.0b4
+```
 ## 1. TrustToken Token Smart Contract
 1. The TrustToken token smart contract will be behind an upgradable proxy which will allow it to be upgraded by our team (similar to the TrueUSD smart contract)
 2. GasBoost will be supported similar to TUSD
