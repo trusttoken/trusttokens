@@ -1,11 +1,10 @@
 const Registry = artifacts.require('RegistryMock')
-const StakedToken = artifacts.require('MockStakedToken')
-const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy')
+const StakedToken = artifacts.require('StakedToken')
 const TrustToken = artifacts.require('MockTrustToken')
-const TrueUSD = artifacts.require('TrueUSD')
+const TrueUSD = artifacts.require('MockERC20Token')
 
-const bytes32 = require('../true-currencies/test/helpers/bytes32.js')
-const assertRevert = require('../true-currencies/test/helpers/assertRevert.js')['default']
+const bytes32 = require('@trusttoken/registry/test/helpers/bytes32.js')
+const assertRevert = require('./helpers/assertRevert.js')
 
 const IS_DEPOSIT_ADDRESS = bytes32('isDepositAddress')
 const IS_REGISTERED_CONTRACT = bytes32('isRegisteredContract')

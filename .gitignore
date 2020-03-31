@@ -8,7 +8,7 @@ coverage
 coverage.json
 coverageEnv
 package-lock.json
-
+.DS_Store
 
 *.swo
 *.swp
