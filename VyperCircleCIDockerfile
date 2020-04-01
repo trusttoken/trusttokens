@@ -2,6 +2,6 @@ FROM vyperlang/vyper:0.1.0b17
 
 WORKDIR /
 
-COPY ./contracts ./home/circleci/project/contracts
+COPY . ./home/circleci/project
 
 ENTRYPOINT ["/usr/local/bin/vyper"]
