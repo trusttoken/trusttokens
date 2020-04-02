@@ -3,6 +3,7 @@ TrustToken is a general assurance system. You provide assurance on any assurance
 
 ## 0. Setup
 ```
+git submodule update --init --recursive
 npm install
 brew install python3
 brew install gmp leveldb
