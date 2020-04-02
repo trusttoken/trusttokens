@@ -16,6 +16,10 @@ import "openzeppelin-solidity/contracts/utils/Address.sol";
  * Unlock transfers can only be called by the owner
  */
 
+/**
+ * @title Ownable
+ * @dev Claimable contract for ownership.
+**/
 contract Ownable {
     address public owner;
     address public pendingOwner;
@@ -50,15 +54,15 @@ contract Ownable {
 }
 
 /**
- * @title TrustTokenVault
+ * @title Vault
  * @dev Holds TrustTokens for unlocking contract.
  * TrustTokens are deposited into the vault and withdrawn directly to recipients.
  * This allows the cancellation of scheduled unlocks.
  */
-contract TrustTokenVault is Ownable {
+contract Vault is Ownable {
     uint256 balance;
     bool minted;
-    uint256 constant MINT_AMOUNT = 100000000000000; // 1 million trusttokens
+    uint256 constant MINT_AMOUNT = 10000000000000000000000000; // 1 billion trusttokens
 
     // Vault Events
     event TrustTokensMinted(uint256 amount);
@@ -66,7 +70,6 @@ contract TrustTokenVault is Ownable {
     constructor() public {
         owner = msg.sender;
         minted = false;
-        token().approve(address(this), MINT_AMOUNT);
     }
 
     function token() internal view returns (TrustToken);
@@ -79,8 +82,9 @@ contract TrustTokenVault is Ownable {
         return token().symbol();
     }
 
-    function transfer(address _to, uint256 _amount) external onlyOwner {
-        token().transfer(_to, _amount);
+    function deliver(address _to, uint256 _amount) external onlyOwner {
+        token().approve(_to, _amount);
+        token().transferFrom(address(this), _to, _amount);
         balance -= _amount;
     }
 
@@ -91,6 +95,7 @@ contract TrustTokenVault is Ownable {
     function mintTrustTokens() external onlyOwner {
         require(minted == false, "trusttokens already minted");
         token().mint(address(this), MINT_AMOUNT);
+        token().approve(address(this), MINT_AMOUNT);
         balance = MINT_AMOUNT;
         minted = true;
         emit TrustTokensMinted(MINT_AMOUNT);
@@ -102,7 +107,7 @@ contract TrustTokenVault is Ownable {
 }
 
 /**
- * @title UnlockTrustTokens
+ * @title Unlock
  * @dev This Unlock contract allows a token issuer to issue tokens in the future.
  * If a mistake is made in the process, the issuer can cancel the unlock and reissue.
  * The issuer is expectedd to renounce their ownership after checking all of the pending unlocks in order to protect the token pool
@@ -110,7 +115,7 @@ contract TrustTokenVault is Ownable {
  * Once claimed, unlock token is "burned" by setting recipient to address(0)
  * IERC721 is not implemented because of the current solidity behavior that public members conflict with public functions of the same name
  */
-contract UnlockTrustTokens is Ownable /*is IERC721*/ {
+contract Unlock is Ownable /*is IERC721*/ {
     using Address for address;
 
     uint256 burnCount;
@@ -137,11 +142,12 @@ contract UnlockTrustTokens is Ownable /*is IERC721*/ {
         // unlockOperations.length cannot be greater than burnCount
         return unlockOperations.length - burnCount;
     }
+
     function ownerOf(uint256 tokenId) public view returns (address) {
         return unlockOperations[tokenId].recipient;
     }
 
-    function vault() internal view returns (TrustTokenVault);
+    function vault() internal view returns (Vault);
 
     bytes4 private constant ERC721_RECEIVED = 0x150b7a02;
     
@@ -155,9 +161,8 @@ contract UnlockTrustTokens is Ownable /*is IERC721*/ {
     event UnlockCancelled(uint256 indexed tokenId);
     event UnlockClaimed(uint256 indexed tokenId, address indexed beneficiary);
 
-
     function claimVaultOwnership() public onlyOwner {
-        vault().claimTokenOwnership();
+        vault().claimOwnership();
     }
 
     /**
@@ -214,7 +219,7 @@ contract UnlockTrustTokens is Ownable /*is IERC721*/ {
         balanceOf[holder]--;
         burnCount++;
         unlockOperations[id].recipient = address(0);
-        vault().transfer(beneficiary, unlockOperations[id].amount);
+        vault().deliver(beneficiary, unlockOperations[id].amount);
     }
 
     function approve(address to, uint256 tokenId) public {
@@ -239,7 +244,7 @@ contract UnlockTrustTokens is Ownable /*is IERC721*/ {
 
     /**
      * @dev Transfer ownership for token id to new address
-     * This needs
+     * This needs to be approved by TrustToken internally (no transfers allowed without legal clearance)
      */
     function transferFrom(address from, address to, uint256 tokenId) public {
         require(from != address(0));
