@@ -1,3 +1,7 @@
 [submodule "uniswap"]
 	path = uniswap
 	url = git@github.com:wjmelements/contracts-vyper.git
+
+[submodule "true-currencies"]
+	path = true-currencies
+	url = git@github.com:trusttoken/true-currencies.git
