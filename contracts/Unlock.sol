@@ -74,6 +74,9 @@ contract Vault is Ownable {
 
     function token() internal view returns (TrustToken);
 
+    /**
+     * @dev Get vault balance.
+    **/
     function vaultBalance() public view returns (uint256) {
         return balance;
     }
@@ -82,8 +85,10 @@ contract Vault is Ownable {
         return token().symbol();
     }
 
+    /**
+     * @dev Deliver vault tokens to address.
+    **/
     function deliver(address _to, uint256 _amount) external onlyOwner {
-        token().approve(_to, _amount);
         token().transferFrom(address(this), _to, _amount);
         balance -= _amount;
     }
