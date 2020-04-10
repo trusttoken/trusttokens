@@ -84,7 +84,7 @@ contract ALiquidator {
 
     // internal variables implemented as storage by Liquidator
     // these variables must be known at construction time
-    // kLiquidator is the actual implementation of ALiquidator
+    // Liquidator is the actual implementation of ALiquidator
 
     /** @dev Get output token (token to get from liqudiation exchange). */
     function outputToken() internal view returns (IERC20);
@@ -98,12 +98,6 @@ contract ALiquidator {
     function registry() internal view returns (Registry);
     /** @dev Address of staking pool. */
     function pool() internal view returns (address);
-
-    /** @dev transfer ownership to sender */
-    constructor() public {
-        owner = msg.sender;
-        emit OwnershipTransferred(address(0), owner);
-    }
 
     /**
      * @dev implementation constructor needs to call initialize

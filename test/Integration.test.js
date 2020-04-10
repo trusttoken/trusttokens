@@ -197,7 +197,6 @@ contract('Deployment', function(accounts) {
                                     describe('Staking', function() {
                                         beforeEach(async function() {
                                             const stakeCreation = await this.factory.createProxyStakingOpportunity(this.trust.address, this.tusd.address, this.liquidator.address)
-                                            console.log(stakeCreation.logs[0].args.opportunity)
                                             this.stakedTrust = await StakedToken.at(stakeCreation.logs[0].args.opportunity)
                                             //const action = web3.utils.sha3('setPool(address)').slice(0, 10) + addressBytes32(this.stakedTrust.address)
                                             //const sig1 = await signAction(manager, this.multisigLiquidator.address, 1, action)
