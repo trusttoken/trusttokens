@@ -84,7 +84,7 @@ contract ALiquidator {
 
     // internal variables implemented as storage by Liquidator
     // these variables must be known at construction time
-    // kLiquidator is the actual implementation of ALiquidator
+    // Liquidator is the actual implementation of ALiquidator
 
     /** @dev Get output token (token to get from liqudiation exchange). */
     function outputToken() internal view returns (IERC20);
