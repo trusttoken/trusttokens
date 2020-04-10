@@ -22,6 +22,8 @@ contract Liquidator is ALiquidator {
         outputUniswap_ = _outputUniswap;
         stakeUniswap_ = _stakeUniswap;
         initialize();
+        owner = msg.sender;
+        emit OwnershipTransferred(address(0), owner);
     }
     function setPool(address _pool) external onlyOwner {
         pool_ = _pool;
