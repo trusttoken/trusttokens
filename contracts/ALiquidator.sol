@@ -99,12 +99,6 @@ contract ALiquidator {
     /** @dev Address of staking pool. */
     function pool() internal view returns (address);
 
-    /** @dev transfer ownership to sender */
-    constructor() public {
-        owner = msg.sender;
-        emit OwnershipTransferred(address(0), owner);
-    }
-
     /**
      * @dev implementation constructor needs to call initialize
      * Here we approve transfers to uniswap for the staking and output token
