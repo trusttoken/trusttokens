@@ -22,7 +22,7 @@ contract TrustToken is ValTokenWithHook, ClaimableContract {
         return "TrustToken";
     }
     function symbol() public pure returns (string memory) {
-        return "TRUST";
+        return "TRU";
     }
 
     function mint(address _to, uint256 _amount) external onlyOwner {
