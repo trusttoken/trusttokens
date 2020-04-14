@@ -46,7 +46,7 @@ contract StakingOpportunityFactory {
 	 * @dev Creates a StakedToken (staking opportunity)
 	 * Given a staking asset, reward asset, and liqudiator address creates
 	 * a new staking opportunity and stores it in registry.
-	 * @param _stakeAsset Asset to stake. Usually TRUST.
+	 * @param _stakeAsset Asset to stake. Usually TRU.
 	 * @param _rewardAsset Asset to reward. Usually TUSD.
 	 * @param _liquidator address of liquidator contract for this opportunity
 	 * @return StakedToken created by this contract.
@@ -63,7 +63,7 @@ contract StakingOpportunityFactory {
 	 * @dev Creates a StakedToken (staking opportunity)
 	 * Given a staking asset, reward asset, and liqudiator address creates
 	 * a new proxy staking opportunity and stores it in registry.
-	 * @param _stakeAsset Asset to stake. Usually TRUST.
+	 * @param _stakeAsset Asset to stake. Usually TRU.
 	 * @param _rewardAsset Asset to reward. Usually TUSD.
 	 * @param _liquidator address of liquidator contract for this opportunity
 	 * @return StakedToken created by this contract.

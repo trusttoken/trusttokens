@@ -268,7 +268,7 @@ contract('StakedAsset', function(accounts) {
                 assert.equal("TrustToken staked for TrueUSD", await this.pool.name.call())
             })
             it('symbol', async function() {
-                assert.equal("TRUST:TUSD", await this.pool.symbol.call())
+                assert.equal("TRU:TUSD", await this.pool.symbol.call())
             })
             it('decimals', async function() {
                 assert.equal(11, await this.pool.decimals.call())
