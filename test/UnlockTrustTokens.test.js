@@ -22,10 +22,10 @@ contract('Unlock', function(accounts) {
     })
     describe('erc721', function() {
         it('name', async function() {
-            assert.equal("Unclaimed TRUST", await this.unlock.name.call())
+            assert.equal("Unclaimed TRU", await this.unlock.name.call())
         })
         it('symbol', async function() {
-            assert.equal("SOON:TRUST", await this.unlock.symbol.call())
+            assert.equal("SOON:TRU", await this.unlock.symbol.call())
 
         })
     })
