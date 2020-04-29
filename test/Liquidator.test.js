@@ -52,6 +52,7 @@ contract('Liquidator', function(accounts) {
         await this.stakeToken.mint(oneHundred, ONE_HUNDRED_ETHER, {from:issuer});
         this.airswap = await Airswap.new(this.transferHandlerRegistry.address, {from: owner})
         this.liquidator = await Liquidator.new(this.registry.address, this.rewardToken.address, this.stakeToken.address, this.outputUniswap.address, this.stakeUniswap.address, {from: owner})
+        await this.liquidator.configure({from:owner})
         await this.liquidator.setPool(fakePool, {from:owner})
         await this.registry.subscribe(AIRSWAP_VALIDATOR, this.liquidator.address, {from: owner})
         await this.registry.subscribe(APPROVED_BENEFICIARY, this.liquidator.address, {from: owner})
@@ -63,6 +64,9 @@ contract('Liquidator', function(accounts) {
     describe('Auth', function() {
         let nonce = 0
         let expiry = parseInt(Date.now() / 1000) + 12000
+        it('can be configured only once', async function() {
+            await assertRevert(this.liquidator.configure(), {from:owner})
+        })
         it('prevents non-owner from reclaiming', async function() {
             await assertRevert(this.liquidator.reclaim(approvedBeneficiary, ONE_HUNDRED_ETHER), {from:account2})
             await assertRevert(this.liquidator.reclaimStake(approvedBeneficiary, ONE_HUNDRED_ETHER), {from:account2})
