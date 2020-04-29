@@ -161,6 +161,7 @@ contract('Deployment', function(accounts) {
                     describe('Liquidator', function() {
                         beforeEach(async function() {
                             this.liquidator = await Liquidator.new(this.registry.address, this.tusd.address, this.trust.address, this.tusdUniswap.address, this.trustUniswap.address, {from:deployer})
+                            await this.liquidator.configure({from:deployer})
                             await this.liquidator.transferOwnership(owner, {from:deployer})
                             await this.liquidator.claimOwnership({from: owner})
                             await this.registry.subscribe(AIRSWAP_VALIDATOR, this.liquidator.address, {from:owner})

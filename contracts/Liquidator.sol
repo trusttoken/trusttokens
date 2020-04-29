@@ -15,11 +15,12 @@ contract Liquidator is ALiquidator {
     IERC20 stakeToken_;
     UniswapV1 outputUniswap_;
     UniswapV1 stakeUniswap_;
+    bool initialized;
     constructor(
-        address registryAddress, 
-        address outputTokenAddress, 
-        address stakeTokenAddress, 
-        address outputUniswapAddress, 
+        address registryAddress,
+        address outputTokenAddress,
+        address stakeTokenAddress,
+        address outputUniswapAddress,
         address stakeUniswapAddress
     ) public {
         registry_ = Registry(registryAddress);
@@ -28,7 +29,12 @@ contract Liquidator is ALiquidator {
         outputUniswap_ = UniswapV1(outputUniswapAddress);
         stakeUniswap_ = UniswapV1(stakeUniswapAddress);
         owner = msg.sender;
+        initialized = false;
         emit OwnershipTransferred(address(0), owner);
+    }
+    function configure() external onlyOwner {
+        require(!initialized, "already initialized");
+        initialized = true;
         initialize();
     }
     function setPool(address _pool) external onlyOwner {
