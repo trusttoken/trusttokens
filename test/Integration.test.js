@@ -232,7 +232,8 @@ contract('Deployment', function(accounts) {
                                                 // await this.multisigLiquidator.reclaim(approvedBeneficiary, ONE_HUNDRED_ETHER, [sig1, sig2])
                                                 await this.liquidator.reclaim(approvedBeneficiary, ONE_HUNDRED_ETHER, {from:owner})
                                             })
-                                            it('can reclaim with airswap', async function() {
+                                            // skipping in current implemention becuase we are not using airswap
+                                            it.skip('can reclaim with airswap', async function() {
                                                 let expiry = parseInt(Date.now() / 1000) + 12000
                                                 await this.tusd.approve(this.airswap.address, ONE_HUNDRED_ETHER, {from:oneHundred})
                                                 await this.tusd.mint(oneHundred, ONE_HUNDRED_ETHER, {from:fakeController})

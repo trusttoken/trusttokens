@@ -1,14 +1,14 @@
 pragma solidity ^0.5.13;
 
-//pragma experimental ABIEncoderV2;
+pragma experimental ABIEncoderV2;
 
-import "./ALiquidatorUniswap.sol";
+import "../ALiquidatorAirswap.sol";
 
 /**
  * @title Liquidator
  * @dev Implementation of ALiquidator
 **/
-contract Liquidator is ALiquidatorUniswap {
+contract MockLiquidatorAirswap is ALiquidatorAirswap {
     address pool_;
     Registry registry_;
     IERC20 outputToken_;

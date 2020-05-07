@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "./ValSafeMath.sol";
+import "./ILiquidator.sol";
 import "@trusttoken/registry/contracts/Registry.sol";
 import "wjm-airswap-swap/contracts/Swap.sol";
 
@@ -38,8 +39,8 @@ interface UniswapV1Factory {
 
 
 /**
- * @title Abstract Liquidator
- * @dev Liquidate staked tokenns on uniswap.
+ * @title Abstract Liquidator for Airswap and Uniswap
+ * @dev Liquidate staked tokenns on uniswap and airswap
  * Airswap uses domainSeparators to validate transactions and prevent replay protection
  * When signing an airswap order we require specification of which validator we are using.
  * This is because there are multiple instances of AirswapV2.
@@ -47,7 +48,7 @@ interface UniswapV1Factory {
  * Outside of the factory.
  * prune() removes all orders that would fail from
  */
-contract ALiquidator {
+contract ALiquidatorAirswap is ILiquidator {
     using ValSafeMath for uint256;
 
     // owner, attributes, and domain separators
