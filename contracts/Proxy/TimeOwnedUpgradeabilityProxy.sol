@@ -4,7 +4,7 @@ import { OwnedUpgradeabilityProxy } from "./OwnedUpgradeabilityProxy.sol";
 
 /**
  * @title TimeOwnedUpgradeabilityProxy
- * @dev This contract combines an upgradeability proxy with 
+ * @dev This contract combines an upgradeability proxy with
  * basic authorization control functionalities
  *
  * This contract allows us to specify a time at which the proxy can no longer
