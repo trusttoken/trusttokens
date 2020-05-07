@@ -114,7 +114,7 @@ contract ALiquidatorUniswap is ILiquidator {
      */
     function syncAttributeValue(address _account, bytes32 _attribute, uint256 _value) external onlyRegistry {
         if (_attribute == APPROVED_BENEFICIARY) {
-            // approved beneficiary flag defines whether someone can recieve
+            // approved beneficiary flag defines whether someone can receive
             if (_value > 0) {
                 attributes[_account] |= LIQUIDATOR_CAN_RECEIVE;
             } else {
@@ -193,7 +193,7 @@ contract ALiquidatorUniswap is ILiquidator {
         uint256 remainingStake = stakeToken().balanceOf(stakePool);
 
         // withdraw to liquidator
-        require(stakeToken().transferFrom(stakePool, address(this), remainingStake), 
+        require(stakeToken().transferFrom(stakePool, address(this), remainingStake),
             "liquidator not approved to transferFrom stakeToken");
 
         // load uniswap state for output and staked token

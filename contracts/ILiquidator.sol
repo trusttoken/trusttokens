@@ -8,7 +8,7 @@ import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
  */
 contract ILiquidator {
 
-    /** @dev Get output token (token to get from liqudiation exchange). */
+    /** @dev Get output token (token to get from liquidation exchange). */
     function outputToken() internal view returns (IERC20);
 
     /** @dev Get stake token (token to be liquidated). */
