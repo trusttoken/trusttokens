@@ -45,7 +45,7 @@ contract AStakedToken is ValTokenWithHook {
     mapping (address => mapping (uint256 => uint256)) pendingWithdrawals;
 
     // unstake period in days
-    uint256 constant UNSTAKE_PERIOD = 28 days;
+    uint256 constant UNSTAKE_PERIOD = 14 days;
 
     // PendingWithdrawal event is initiated when finalizing stake
     // used to help user interfaces
