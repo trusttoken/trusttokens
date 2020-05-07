@@ -579,6 +579,9 @@ contract('Liquidator', function(accounts) {
         })
     })
     describe('UniswapV1 with LiquidatorUniswap', function() {
+        it('can be configured only once', async function() {
+            await assertRevert(this.liquidatorUniswap.configure(this.registry.address, this.rewardToken.address, this.stakeToken.address, this.outputUniswap.address, this.stakeUniswap.address, {from:owner}))
+        })
         it('Liquidates all stake', async function() {
             await this.stakeToken.transfer(fakePool, ONE_HUNDRED_ETHER, {from: oneHundred})
             let reclaimed = await this.liquidatorUniswap.reclaim(approvedBeneficiary, ONE_HUNDRED_ETHER, {from:owner})
