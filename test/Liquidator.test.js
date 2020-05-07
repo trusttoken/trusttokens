@@ -64,8 +64,8 @@ contract('Liquidator', function(accounts) {
         await this.stakeToken.approve(this.liquidatorAirswap.address, ONE_HUNDRED_ETHER, { from: fakePool })
 
         // setup uniswap liquidator
-        this.liquidatorUniswap = await LiquidatorUniswap.new(this.registry.address, this.rewardToken.address, this.stakeToken.address, this.outputUniswap.address, this.stakeUniswap.address, {from: owner})
-        await this.liquidatorUniswap.configure({from:owner})
+        this.liquidatorUniswap = await LiquidatorUniswap.new({from: owner})
+        await this.liquidatorUniswap.configure(this.registry.address, this.rewardToken.address, this.stakeToken.address, this.outputUniswap.address, this.stakeUniswap.address, {from:owner})
         await this.liquidatorUniswap.setPool(fakePool, {from:owner})
         await this.registry.subscribe(APPROVED_BENEFICIARY, this.liquidatorUniswap.address, {from: owner})
         await this.registry.setAttributeValue(approvedBeneficiary, APPROVED_BENEFICIARY, 1, {from: owner})
@@ -76,7 +76,7 @@ contract('Liquidator', function(accounts) {
         let nonce = 0
         let expiry = parseInt(Date.now() / 1000) + 12000
         it('can be configured only once', async function() {
-            await assertRevert(this.liquidatorAirswap.configure(), {from:owner})
+            await assertRevert(this.liquidatorAirswap.configure({from:owner}))
         })
         it('prevents non-owner from reclaiming', async function() {
             await assertRevert(this.liquidatorAirswap.reclaim(approvedBeneficiary, ONE_HUNDRED_ETHER), {from:account2})
