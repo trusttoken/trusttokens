@@ -1,14 +1,14 @@
 pragma solidity ^0.5.13;
 
-//pragma experimental ABIEncoderV2;
+pragma experimental ABIEncoderV2;
 
-import "./ALiquidatorUniswap.sol";
+import "../ALiquidatorAirswap.sol";
 
 /**
  * @title Liquidator
  * @dev Implementation of ALiquidator
 **/
-contract Liquidator is ALiquidatorUniswap {
+contract MockLiquidatorAirswap is ALiquidatorAirswap {
     address pool_;
     Registry registry_;
     IERC20 outputToken_;
@@ -16,22 +16,24 @@ contract Liquidator is ALiquidatorUniswap {
     UniswapV1 outputUniswap_;
     UniswapV1 stakeUniswap_;
     bool initialized;
-
-    function configure(
+    constructor(
         address registryAddress,
         address outputTokenAddress,
         address stakeTokenAddress,
         address outputUniswapAddress,
         address stakeUniswapAddress
-    ) external {
-        require(!initialized, "already initialized");
+    ) public {
         registry_ = Registry(registryAddress);
         outputToken_ = IERC20(outputTokenAddress);
         stakeToken_ = IERC20(stakeTokenAddress);
         outputUniswap_ = UniswapV1(outputUniswapAddress);
         stakeUniswap_ = UniswapV1(stakeUniswapAddress);
         owner = msg.sender;
+        initialized = false;
         emit OwnershipTransferred(address(0), owner);
+    }
+    function configure() external onlyOwner {
+        require(!initialized, "already initialized");
         initialized = true;
         initialize();
     }

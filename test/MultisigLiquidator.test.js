@@ -51,8 +51,8 @@ contract('MultisigLiquidator', function(accounts) {
         await this.rewardToken.mint(oneHundred, ONE_HUNDRED, {from:issuer});
         await this.stakeToken.mint(oneHundred, ONE_HUNDRED, {from:issuer});
         this.airswap = await Airswap.new(this.transferHandlerRegistry.address, {from: owner})
-        this.liquidator = await Liquidator.new(this.registry.address, this.rewardToken.address, this.stakeToken.address, this.outputUniswap.address, this.stakeUniswap.address, {from: owner})
-        await this.liquidator.configure({from:owner})
+        this.liquidator = await Liquidator.new({from: owner})
+        await this.liquidator.configure(this.registry.address, this.rewardToken.address, this.stakeToken.address, this.outputUniswap.address, this.stakeUniswap.address, {from:owner})
         await this.liquidator.setPool(fakePool, {from:owner})
         await this.registry.subscribe(AIRSWAP_VALIDATOR, this.liquidator.address, {from: owner})
         await this.registry.subscribe(APPROVED_BENEFICIARY, this.liquidator.address, {from: owner})

@@ -160,8 +160,8 @@ contract('Deployment', function(accounts) {
                     })
                     describe('Liquidator', function() {
                         beforeEach(async function() {
-                            this.liquidator = await Liquidator.new(this.registry.address, this.tusd.address, this.trust.address, this.tusdUniswap.address, this.trustUniswap.address, {from:deployer})
-                            await this.liquidator.configure({from:deployer})
+                            this.liquidator = await Liquidator.new({from:deployer})
+                            await this.liquidator.configure(this.registry.address, this.tusd.address, this.trust.address, this.tusdUniswap.address, this.trustUniswap.address, {from:deployer})
                             await this.liquidator.transferOwnership(owner, {from:deployer})
                             await this.liquidator.claimOwnership({from: owner})
                             await this.registry.subscribe(AIRSWAP_VALIDATOR, this.liquidator.address, {from:owner})
@@ -232,7 +232,8 @@ contract('Deployment', function(accounts) {
                                                 // await this.multisigLiquidator.reclaim(approvedBeneficiary, ONE_HUNDRED_ETHER, [sig1, sig2])
                                                 await this.liquidator.reclaim(approvedBeneficiary, ONE_HUNDRED_ETHER, {from:owner})
                                             })
-                                            it('can reclaim with airswap', async function() {
+                                            // skipping in current implemention becuase we are not using airswap
+                                            it.skip('can reclaim with airswap', async function() {
                                                 let expiry = parseInt(Date.now() / 1000) + 12000
                                                 await this.tusd.approve(this.airswap.address, ONE_HUNDRED_ETHER, {from:oneHundred})
                                                 await this.tusd.mint(oneHundred, ONE_HUNDRED_ETHER, {from:fakeController})

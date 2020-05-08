@@ -12,7 +12,7 @@ import { OwnedUpgradeabilityProxy } from "./OwnedUpgradeabilityProxy.sol";
  */
 contract TimeOwnedUpgradeabilityProxy is OwnedUpgradeabilityProxy {
 
-    uint256 expiration;
+    uint256 public expiration;
 
     /**
     * @dev the constructor sets the original owner of the contract to the sender account.
@@ -20,7 +20,7 @@ contract TimeOwnedUpgradeabilityProxy is OwnedUpgradeabilityProxy {
     constructor() public {
         _setUpgradeabilityOwner(msg.sender);
         // set expiration to ~4 months from now
-        expiration = block.timestamp + 124 days; 
+        expiration = block.timestamp + 124 days;
     }
 
     /**
@@ -38,5 +38,5 @@ contract TimeOwnedUpgradeabilityProxy is OwnedUpgradeabilityProxy {
     function upgradeTo(address implementation) public onlyProxyOwner {
         require (block.timestamp < expiration, "after expration date");
         super.upgradeTo(implementation);
-    }  
+    }
   }
