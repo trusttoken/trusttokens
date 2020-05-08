@@ -45,7 +45,7 @@ contract AStakedToken is ValTokenWithHook {
     mapping (address => mapping (uint256 => uint256)) pendingWithdrawals;
 
     // unstake period in days
-    uint256 constant UNSTAKE_PERIOD = 28 days;
+    uint256 constant UNSTAKE_PERIOD = 14 days;
 
     // PendingWithdrawal event is initiated when finalizing stake
     // used to help user interfaces
@@ -249,7 +249,7 @@ contract AStakedToken is ValTokenWithHook {
     }
 
     /**
-     * @dev Finalize unstake after 4 weeks.
+     * @dev Finalize unstake after 2 weeks.
      * Loop over timestamps
      * Checks if unstake perioud has passed, if yes, calculate how much stake account get
      * @param recipient recipient of
@@ -260,7 +260,7 @@ contract AStakedToken is ValTokenWithHook {
         // loop through timestamps and calculate total unstake
         for (uint256 i = _timestamps.length; i --> 0;) {
             uint256 timestamp = _timestamps[i]; 
-            require(timestamp + UNSTAKE_PERIOD <= now, "must wait 4 weeks to unstake");
+            require(timestamp + UNSTAKE_PERIOD <= now, "must wait 2 weeks to unstake");
             // add to total unstake amount
             totalUnstake = totalUnstake.add(pendingWithdrawals[msg.sender][timestamp], "stake overflow");
             
