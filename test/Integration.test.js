@@ -261,9 +261,9 @@ contract('Deployment', function(accounts) {
                                                 it('disallows finalizing unstaking', async function() {
                                                     await assertRevert(this.stakedTrust.finalizeUnstake(oneHundred, [this.timestamp], {from:account1}))
                                                 })
-                                                describe('4 weeks later', function() {
+                                                describe('2 weeks later', function() {
                                                     beforeEach(async function() {
-                                                        await timeMachine.advanceTime(28 * 24 * 60 * 60)
+                                                        await timeMachine.advanceTime(14 * 24 * 60 * 60)
                                                     })
                                                     it('allows finalizing unstaking', async function() {
                                                         await this.stakedTrust.finalizeUnstake(oneHundred, [this.timestamp], {from:account1})
