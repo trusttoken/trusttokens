@@ -10,12 +10,12 @@ contract('TimeOwnedUpgradeabilityProxy', function(accounts) {
     })
 
     it('does not allow upgrade after certain time passes', async () => {
-        await timeMachine.advanceTime(60 * 60 * 24 * 124 + 1)
+        await timeMachine.advanceTime(60 * 60 * 24 * 124 + 10)
         await assertRevert(this.timeOwnedUpgradeabilityProxy.upgradeTo(address))
     })
 
     it('allows upgrade before some, but not enough time passes', async () => {
-        await timeMachine.advanceTime(60 * 60 * 24 * 124 - 1)
+        await timeMachine.advanceTime(60 * 60 * 24 * 124 - 10)
         await this.timeOwnedUpgradeabilityProxy.upgradeTo(address)
         assert(address == await this.timeOwnedUpgradeabilityProxy.implementation())
     })
@@ -26,15 +26,15 @@ contract('TimeOwnedUpgradeabilityProxy', function(accounts) {
     })
 
     it('allows extend before certain time passes', async () => {
-        await timeMachine.advanceTime(60 * 60 * 24 * 124 - 1)
+        await timeMachine.advanceTime(60 * 60 * 24 * 124 - 10)
         await this.timeOwnedUpgradeabilityProxy.extendExpiration()
-        await timeMachine.advanceTime(2)
+        await timeMachine.advanceTime(20)
         await this.timeOwnedUpgradeabilityProxy.upgradeTo(address)
         assert(address == await this.timeOwnedUpgradeabilityProxy.implementation())
     })
 
     it('does not allow extend after certain time passes', async () => {
-        await timeMachine.advanceTime(60 * 60 * 24 * 124 + 1)
+        await timeMachine.advanceTime(60 * 60 * 24 * 124 + 10)
         await assertRevert(this.timeOwnedUpgradeabilityProxy.extendExpiration())
     })
 })
