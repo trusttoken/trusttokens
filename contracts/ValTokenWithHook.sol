@@ -10,41 +10,27 @@ contract ValTokenWithHook is IERC20, ModularStandardToken, RegistrySubscriber {
     event Mint(address indexed to, uint256 indexed amount);
 
     function _resolveRecipient(address _to) internal view returns (address to, bool hook) {
-        uint256 flags = (attributes[uint144(uint160(_to) >> 20)]);
-        if (flags == 0) {
-            to = _to;
-            // attributes[uint144(uint160(to) >> 20)] = uint256(to);
-            hook = false;
-        } else {
-            require((flags & ACCOUNT_BLACKLISTED) == 0, "blacklisted recipient");
-            to = address(flags);
-            hook = (flags & ACCOUNT_HOOK) != 0;
-        }
-    }
-
-    modifier resolveSender(address _from) {
-        uint256 flags = (attributes[uint144(uint160(_from) >> 20)]);
-        require((flags & ACCOUNT_BLACKLISTED) == 0, "blacklisted sender");
-        address from = address(flags);
-        if (from != address(0)) {
-            require(from == _from, "account collision");
-        }
-        _;
+        // we're choosing to not support hooks & autosweep
+        // just resolve recipient to _to and return false
+        return (_to, false);
     }
 
     function _transferFromAllArgs(address _from, address _to, uint256 _value, address _spender) internal {
         _subAllowance(_from, _spender, _value);
         _transferAllArgs(_from, _to, _value);
     }
+
     function transferFrom(address _from, address _to, uint256 _value) external returns (bool) {
         _transferFromAllArgs(_from, _to, _value, msg.sender);
         return true;
     }
+
     function transfer(address _to, uint256 _value) external returns (bool) {
         _transferAllArgs(msg.sender, _to, _value);
         return true;
     }
-    function _transferAllArgs(address _from, address _to, uint256 _value) internal resolveSender(_from) {
+
+    function _transferAllArgs(address _from, address _to, uint256 _value) internal {
         _subBalance(_from, _value);
         emit Transfer(_from, _to, _value);
         bool hasHook;
@@ -53,9 +39,6 @@ contract ValTokenWithHook is IERC20, ModularStandardToken, RegistrySubscriber {
         _addBalance(to, _value);
         if (_to != to) {
             emit Transfer(_to, to, _value);
-        }
-        if (hasHook) {
-            TrueCoinReceiver(to).tokenFallback(_from, _value);
         }
     }
 
