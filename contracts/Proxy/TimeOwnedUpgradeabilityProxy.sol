@@ -12,7 +12,7 @@ import { OwnedUpgradeabilityProxy } from "./OwnedUpgradeabilityProxy.sol";
  */
 contract TimeOwnedUpgradeabilityProxy is OwnedUpgradeabilityProxy {
 
-    uint256 expiration;
+    uint256 public expiration;
 
     /**
     * @dev the constructor sets the original owner of the contract to the sender account.
