@@ -12,7 +12,7 @@ import "openzeppelin-solidity/contracts/utils/Address.sol";
  * 2. TrustTokens are minted and transferred to vault
  * 3. Unlock contract is deployed
  * 4. Token unlocks are scheduled
- * 
+ *
  * Unlock transfers can only be called by the owner
  */
 
@@ -62,7 +62,7 @@ contract Ownable {
 contract Vault is Ownable {
     uint256 balance;
     bool minted;
-    uint256 constant MINT_AMOUNT = 10000000000000000000000000; // 1 billion trusttokens
+    uint256 constant MINT_AMOUNT = 100000000000000000; // 1 billion trusttokens
 
     // Vault Events
     event TrustTokensMinted(uint256 amount);
@@ -155,12 +155,12 @@ contract Unlock is Ownable /*is IERC721*/ {
     function vault() internal view returns (Vault);
 
     bytes4 private constant ERC721_RECEIVED = 0x150b7a02;
-    
+
     // ERC721
     event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
     event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId);
     event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
-    
+
     // Unlock
     event UnlockScheduled(uint256 indexed tokenId, address indexed recipient, uint256 indexed amount, uint256 activation);
     event UnlockCancelled(uint256 indexed tokenId);

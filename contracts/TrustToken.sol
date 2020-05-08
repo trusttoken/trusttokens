@@ -5,7 +5,7 @@ import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 /**
  * @title TrustToken
- * @dev The TrustToken contract is a claimable contract where the 
+ * @dev The TrustToken contract is a claimable contract where the
  * owner can only mint or transfer ownership. TrustTokens use 8 decimals
  * in order to prevent rewards from getting stuck in the remainder on division.
  * Tolerates dilution to slash stake and accept rewards.
@@ -13,10 +13,10 @@ import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 contract TrustToken is ERC20 {
     using SafeMath for uint256;
     /**
-     * @dev initalize trusttoken and give ownership to sender
-     * This is nessesary to set ownership for proxy 
+     * @dev initialize trusttoken and give ownership to sender
+     * This is necessary to set ownership for proxy
      */
-    function initalize() public {
+    function initialize() public {
         require(!initalized, "already initalized");
         owner_ = msg.sender;
     }

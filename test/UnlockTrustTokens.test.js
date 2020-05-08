@@ -4,15 +4,16 @@ const Unlock = artifacts.require('UnlockTrustTokens')
 const Vault = artifacts.require('TrustTokenVault')
 const BN = web3.utils.toBN
 const assertRevert = require('./helpers/assertRevert.js')
-const ONE_HUNDRED = BN(100).mul(BN(1e18))
+const ONE_HUNDRED = BN(100).mul(BN(1e8))
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
-const TRUST_TOKEN_MINT_AMOUNT = 10000000000000000000000000 //BN(100000000000000000).mul(BN(1e8))
+const TRUST_TOKEN_MINT_AMOUNT = 100000000000000000 //BN(100000000000000000).mul(BN(1e8))
 
 contract('Unlock', function(accounts) {
-    const [_, owner, issuer, oneHundred, account1, account2] = accounts
+    const [_, owner, issuer, account1, account2] = accounts
     beforeEach(async function() {
         this.registry = await Registry.new({ from: owner });
         this.token = await TrustToken.new(this.registry.address, { from: issuer });
+        await this.token.initialize({from: issuer})
         this.vault = await Vault.new(this.token.address, {from: owner});
         this.unlock = await Unlock.new(this.vault.address, {from: owner});
 
@@ -22,10 +23,10 @@ contract('Unlock', function(accounts) {
     })
     describe('erc721', function() {
         it('name', async function() {
-            assert.equal("Unclaimed TRUST", await this.unlock.name.call())
+            assert.equal("Unclaimed TRU", await this.unlock.name.call())
         })
         it('symbol', async function() {
-            assert.equal("SOON:TRUST", await this.unlock.symbol.call())
+            assert.equal("SOON:TRU", await this.unlock.symbol.call())
 
         })
     })
@@ -190,7 +191,7 @@ contract('Unlock', function(accounts) {
             await this.unlock.claimVaultOwnership({from: owner})
             let timestamp = parseInt(Date.now() / 1000);
 
-            const scheduled = await this.unlock.scheduleUnlock(account1, ONE_HUNDRED, timestamp, {from:owner})
+            await this.unlock.scheduleUnlock(account1, ONE_HUNDRED, timestamp, {from:owner})
             const delivery = await this.unlock.deliver(0, account2, {from: account1})
             assert.equal(2, delivery.logs.length)
             assert.equal(delivery.logs[0].event, "UnlockClaimed")
