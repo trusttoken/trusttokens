@@ -4,7 +4,7 @@ import { ERC20ProxyStorage } from "./ERC20ProxyStorage.sol";
 
 /**
  * @title ClaimableContract
- * @dev The ClaimableContract contract is a copy of Claimable Contract by Zeppelin. 
+ * @dev The ClaimableContract contract is a copy of Claimable Contract by OpenZeppelin.. 
  and provides basic authorization control functions. Inherits storage layout of 
  ERC20ProxyStorage.
  */
@@ -44,7 +44,7 @@ contract ClaimableERC20 is ERC20ProxyStorage {
     * @dev Modifier throws if called by any account other than the pendingOwner.
     */
     modifier onlyPendingOwner() {
-        require(msg.sender == pendingOwner_);
+        require(msg.sender == pendingOwner_ , "only pending owner");
         _;
     }
 
@@ -60,9 +60,8 @@ contract ClaimableERC20 is ERC20ProxyStorage {
     * @dev Allows the pendingOwner address to finalize the transfer.
     */
     function claimOwnership() public onlyPendingOwner {
-        address _pendingOwner = pendingOwner_;
-        emit OwnershipTransferred(owner_, _pendingOwner);
-        owner_ = _pendingOwner;
+        emit OwnershipTransferred(owner_, pendingOwner_);
+        owner_ = pendingOwner_;
         pendingOwner_ = address(0);
     }
 }

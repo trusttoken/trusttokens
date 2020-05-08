@@ -1,6 +1,7 @@
 pragma solidity ^0.5.13;
 
 import { ERC20 } from "./ERC20/StandardERC20.sol";
+import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 /**
  * @title TrustToken
@@ -10,12 +11,13 @@ import { ERC20 } from "./ERC20/StandardERC20.sol";
  * Tolerates dilution to slash stake and accept rewards.
  */
 contract TrustToken is ERC20 {
-
+    using SafeMath for uint256;
     /**
      * @dev initalize trusttoken and give ownership to sender
      * This is nessesary to set ownership for proxy 
      */
     function initalize() public {
+        require(!initalized, "already initalized");
         owner_ = msg.sender;
     }
 
@@ -24,7 +26,7 @@ contract TrustToken is ERC20 {
      * Can never mint more than MAX_SUPPLY = 1.45 billion
      */
     function mint(address _to, uint256 _amount) external onlyOwner {
-        if (_totalSupply <= MAX_SUPPLY) {
+        if (_totalSupply.add(_amount) <= MAX_SUPPLY) {
             _mint(_to, _amount);
         }
         else {
