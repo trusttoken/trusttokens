@@ -30,7 +30,7 @@ contract('StakingOpportunityFactory', function(accounts) {
         this.registry = await Registry.new({ from: owner });
         this.rewardToken = await ValTokenWithHook.new({ from: issuer });
         this.stakeToken = await TrustToken.new(this.registry.address, { from: issuer });
-        this.stakeToken.initialize({ from: issuer});
+        this.stakeToken.initialize({ from: issuer });
         await this.rewardToken.setRegistry(this.registry.address, {from: issuer})
         await this.rewardToken.mint(oneHundred, ONE_HUNDRED_ETHER, {from:issuer});
         await this.stakeToken.mint(oneHundred, ONE_HUNDRED_BITCOIN, {from:issuer});
@@ -38,6 +38,7 @@ contract('StakingOpportunityFactory', function(accounts) {
         this.implementation = await StakedTokenProxy.new()
         this.factory = await StakingOpportunityFactory.new(this.registry.address, this.implementation.address, {from:owner})
         await this.registry.setAttributeValue(this.factory.address, writeAttributeFor(IS_REGISTERED_CONTRACT), 1, {from:owner})
+        await this.registry.subscribe(IS_REGISTERED_CONTRACT, this.stakeToken.address, {from:owner})
         await this.registry.subscribe(IS_REGISTERED_CONTRACT, this.rewardToken.address, {from:owner})
     })
     describe('createStakingOpportunity', function() {
@@ -52,7 +53,6 @@ contract('StakingOpportunityFactory', function(accounts) {
             assert(ONE_HUNDRED_BITCOIN.mul(DEFAULT_RATIO).eq(await stakingOpportunity.totalSupply.call()))
 
             await this.rewardToken.transfer(stakingOpportunity.address, ONE_HUNDRED_ETHER, {from:oneHundred})
-            //await this.factory.syncAttributeValues(PASSED_KYCAML, [kycAccount], [stakingOpportunity.address])
             await stakingOpportunity.transfer(kycAccount, ONE_HUNDRED_BITCOIN.mul(DEFAULT_RATIO), { from: oneHundred})
             await stakingOpportunity.claimRewards(kycAccount, {from:kycAccount})
             assert(ONE_HUNDRED_ETHER.sub(await this.rewardToken.balanceOf.call(kycAccount)).lt(await stakingOpportunity.totalSupply.call()))
