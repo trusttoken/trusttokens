@@ -2,6 +2,8 @@ pragma solidity ^0.5.13;
 
 import { ERC20 } from "./ERC20/StandardERC20.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "./ValTokenWithHook.sol";
+import "./ClaimableContract.sol";
 
 /**
  * @title TrustToken
@@ -10,7 +12,7 @@ import "openzeppelin-solidity/contracts/math/SafeMath.sol";
  * in order to prevent rewards from getting stuck in the remainder on division.
  * Tolerates dilution to slash stake and accept rewards.
  */
-contract TrustToken is ERC20 {
+contract TrustToken is ValTokenWithHook, ClaimableContract {
     using SafeMath for uint256;
     /**
      * @dev initialize trusttoken and give ownership to sender
@@ -26,7 +28,7 @@ contract TrustToken is ERC20 {
      * Can never mint more than MAX_SUPPLY = 1.45 billion
      */
     function mint(address _to, uint256 _amount) external onlyOwner {
-        if (_totalSupply.add(_amount) <= MAX_SUPPLY) {
+        if (totalSupply.add(_amount) <= MAX_SUPPLY) {
             _mint(_to, _amount);
         }
         else {

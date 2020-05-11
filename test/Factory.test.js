@@ -38,7 +38,6 @@ contract('StakingOpportunityFactory', function(accounts) {
         this.implementation = await StakedTokenProxy.new()
         this.factory = await StakingOpportunityFactory.new(this.registry.address, this.implementation.address, {from:owner})
         await this.registry.setAttributeValue(this.factory.address, writeAttributeFor(IS_REGISTERED_CONTRACT), 1, {from:owner})
-        await this.registry.subscribe(IS_REGISTERED_CONTRACT, this.stakeToken.address, {from:owner})
         await this.registry.subscribe(IS_REGISTERED_CONTRACT, this.rewardToken.address, {from:owner})
     })
     describe('createStakingOpportunity', function() {

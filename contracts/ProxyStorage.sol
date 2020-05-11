@@ -8,6 +8,8 @@ import "@trusttoken/registry/contracts/Registry.sol";
  * Never remove items from this list
  */
 contract ProxyStorage {
+    uint256 constant MAX_SUPPLY = 145000000000000000;
+    bool initalized = false;
     uint256 public totalSupply;
 
     mapping (address => uint256) public balanceOf;
