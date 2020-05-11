@@ -1,6 +1,5 @@
 pragma solidity ^0.5.13;
 
-import { ERC20 } from "./ERC20/StandardERC20.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "./ValTokenWithHook.sol";
 import "./ClaimableContract.sol";
@@ -14,6 +13,7 @@ import "./ClaimableContract.sol";
  */
 contract TrustToken is ValTokenWithHook, ClaimableContract {
     using SafeMath for uint256;
+    uint256 constant MAX_SUPPLY = 145000000000000000;
     /**
      * @dev initialize trusttoken and give ownership to sender
      * This is necessary to set ownership for proxy
