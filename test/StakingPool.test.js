@@ -156,8 +156,8 @@ contract('StakedAsset', function(accounts) {
             })
             describe('after unstake period', function() {
                 beforeEach(async function() {
-                    // fast forward 4 weeks
-                    await timeMachine.advanceTime(28 * 24 * 60 * 60)
+                    // fast forward 2 weeks
+                    await timeMachine.advanceTime(14 * 24 * 60 * 60)
                 })
                 it('finalizes unstake', async function() {
                     await this.pool.finalizeUnstake(account2, [this.timestamp], {from:oneHundred})
@@ -194,8 +194,8 @@ contract('StakedAsset', function(accounts) {
             })
             describe('after unstake period', function() {
                 beforeEach(async function() {
-                    // fast forward 4 weeks
-                    await timeMachine.advanceTime(28 * 24 * 60 * 60)
+                    // fast forward 2 weeks
+                    await timeMachine.advanceTime(14 * 24 * 60 * 60)
                 })
                 it('finalizes unstake', async function() {
                     await this.pool.finalizeUnstake(account2, [this.timestamp], {from:oneHundred})
@@ -249,8 +249,8 @@ contract('StakedAsset', function(accounts) {
             })
             describe('after unstake period', function() {
                 beforeEach(async function() {
-                    // fast forward 4 weeks
-                    await timeMachine.advanceTime(28 * 24 * 60 * 60)
+                    // fast forward 2 weeks
+                    await timeMachine.advanceTime(14 * 24 * 60 * 60)
                 })
                 it('finalizes unstake', async function() {
                     await this.pool.finalizeUnstake(account2, [this.timestamp1, this.timestamp2], {from:oneHundred})
