@@ -4,6 +4,7 @@ const timeMachine = require('ganache-time-traveler')
 
 contract('TimeOwnedUpgradeabilityProxy', function(accounts) {
     let address
+
     beforeEach(async () => {
     address = web3.eth.accounts.create().address
     this.timeOwnedUpgradeabilityProxy = await TimeOwnedUpgradeabilityProxy.new();
