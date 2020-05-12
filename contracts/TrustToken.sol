@@ -21,6 +21,7 @@ contract TrustToken is ValTokenWithHook, ClaimableContract {
     function initialize() public {
         require(!initalized, "already initalized");
         owner_ = msg.sender;
+        initalized = true;
     }
 
     /**
