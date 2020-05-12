@@ -233,7 +233,7 @@ contract AStakedToken is ValTokenWithHook {
     /**
      * @dev Initialize unstake. Can specify a portion of your balance to unstake.
      * @param _maxAmount max amount caller wishes to unstake (in this.balanceOf units)
-     * @return unstake_ 
+     * @return unstake_
     */
     function initUnstake(uint256 _maxAmount) external returns (uint256 unstake_) {
         unstake_ = balanceOf[msg.sender];
@@ -253,17 +253,17 @@ contract AStakedToken is ValTokenWithHook {
      * Loop over timestamps
      * Checks if unstake perioud has passed, if yes, calculate how much stake account get
      * @param recipient recipient of
-     * @param _timestamps timestamps to 
+     * @param _timestamps timestamps to
      */
     function finalizeUnstake(address recipient, uint256[] calldata _timestamps) external {
         uint256 totalUnstake = 0;
         // loop through timestamps and calculate total unstake
         for (uint256 i = _timestamps.length; i --> 0;) {
-            uint256 timestamp = _timestamps[i]; 
+            uint256 timestamp = _timestamps[i];
             require(timestamp + UNSTAKE_PERIOD <= now, "must wait 2 weeks to unstake");
             // add to total unstake amount
             totalUnstake = totalUnstake.add(pendingWithdrawals[msg.sender][timestamp], "stake overflow");
-            
+
             pendingWithdrawals[msg.sender][timestamp] = 0;
         }
         IERC20 stake = stakeAsset(); // get stake asset
@@ -311,7 +311,7 @@ contract AStakedToken is ValTokenWithHook {
     function claimRewards(address _destination) external {
         // check KYC attribte
         require(attributes[uint144(uint160(msg.sender) >> 20)] & ACCOUNT_KYC != 0 || registry().getAttributeValue(msg.sender, PASSED_KYCAML) != 0, "please register at app.trusttoken.com");
-        
+
         // calculate how much stake and rewards account has
         uint256 stake = balanceOf[msg.sender];
         if (stake == 0) {

@@ -1,6 +1,7 @@
 const Registry = artifacts.require('RegistryMock')
 const StakedToken = artifacts.require('StakedToken')
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy')
+const TimeOwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy')
 const TrustToken = artifacts.require('MockTrustToken')
 const ValTokenWithHook = artifacts.require('MockERC20Token')
 const StakingOpportunityFactory = artifacts.require('StakingOpportunityFactory')
@@ -29,6 +30,7 @@ contract('StakingOpportunityFactory', function(accounts) {
         this.registry = await Registry.new({ from: owner });
         this.rewardToken = await ValTokenWithHook.new({ from: issuer });
         this.stakeToken = await TrustToken.new(this.registry.address, { from: issuer });
+        this.stakeToken.initialize({ from: issuer });
         await this.rewardToken.setRegistry(this.registry.address, {from: issuer})
         await this.rewardToken.mint(oneHundred, ONE_HUNDRED_ETHER, {from:issuer});
         await this.stakeToken.mint(oneHundred, ONE_HUNDRED_BITCOIN, {from:issuer});
@@ -51,7 +53,6 @@ contract('StakingOpportunityFactory', function(accounts) {
             assert(ONE_HUNDRED_BITCOIN.mul(DEFAULT_RATIO).eq(await stakingOpportunity.totalSupply.call()))
 
             await this.rewardToken.transfer(stakingOpportunity.address, ONE_HUNDRED_ETHER, {from:oneHundred})
-            //await this.factory.syncAttributeValues(PASSED_KYCAML, [kycAccount], [stakingOpportunity.address])
             await stakingOpportunity.transfer(kycAccount, ONE_HUNDRED_BITCOIN.mul(DEFAULT_RATIO), { from: oneHundred})
             await stakingOpportunity.claimRewards(kycAccount, {from:kycAccount})
             assert(ONE_HUNDRED_ETHER.sub(await this.rewardToken.balanceOf.call(kycAccount)).lt(await stakingOpportunity.totalSupply.call()))

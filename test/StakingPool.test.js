@@ -24,6 +24,7 @@ contract('StakedAsset', function(accounts) {
         this.registry = await Registry.new({ from: owner });
         this.rewardToken = await TrueUSD.new({ from: issuer });
         this.stakeToken = await TrustToken.new(this.registry.address, { from: issuer });
+        await this.stakeToken.initialize({ from: issuer });
         this.pool = await StakedToken.new(this.stakeToken.address, this.rewardToken.address, this.registry.address, fakeLiquidator, {from: owner})
         await this.rewardToken.setRegistry(this.registry.address, {from: issuer})
         await this.rewardToken.mint(oneHundred, ONE_HUNDRED_ETHER, {from:issuer});
@@ -268,7 +269,7 @@ contract('StakedAsset', function(accounts) {
                 assert.equal("TrustToken staked for TrueUSD", await this.pool.name.call())
             })
             it('symbol', async function() {
-                assert.equal("TRUST:TUSD", await this.pool.symbol.call())
+                assert.equal("TRU:TUSD", await this.pool.symbol.call())
             })
             it('decimals', async function() {
                 assert.equal(11, await this.pool.decimals.call())

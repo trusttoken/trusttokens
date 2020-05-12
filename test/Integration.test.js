@@ -41,7 +41,7 @@ const { signAction } = require('./lib/multisigLiquidator.js')
 
 contract('Deployment', function(accounts) {
     const [_, account1, account2, deployer, owner, fakeController, oneHundred, kycAccount, kycWriteKey, approvedBeneficiary] = accounts // auditor, manager,
-    describe('MockERC20Token and Registry', function() {
+    describe('TrueUSD and Registry', function() {
         beforeEach(async function() {
             // registry
             this.registryProxy = await OwnedUpgradeabilityProxy.new({from:deployer})
@@ -49,7 +49,7 @@ contract('Deployment', function(accounts) {
             await this.registryProxy.upgradeTo(this.registryImplementation.address, {from:deployer})
             this.registry = await Registry.at(this.registryProxy.address)
             await this.registry.initialize({from:deployer})
-            // MockERC20Token
+            // trueusd
             this.tusdProxy = await OwnedUpgradeabilityProxy.new({from:deployer})
             this.tusdMockImplementation = await MockERC20Token.new(ZERO_ADDRESS, 0, {from:deployer})
             this.tusdImplementation = await MockERC20Token.new({from:deployer})
@@ -102,6 +102,7 @@ contract('Deployment', function(accounts) {
                 await this.trustProxy.claimProxyOwnership({from:owner})
                 */
                 this.trust = await TrustToken.new(this.registry.address, {from:deployer})
+                this.trust.initialize({from:deployer})
                 await this.registry.subscribe(IS_REGISTERED_CONTRACT, this.trust.address, {from:owner})
             })
             it('TrustToken owner is deployer', async function() {
