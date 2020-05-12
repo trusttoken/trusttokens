@@ -1,6 +1,6 @@
 pragma solidity ^0.5.13;
 
-import { OwnedUpgradeabilityProxy } from "./OwnedUpgradeabilityProxy.sol";
+import {OwnedUpgradeabilityProxy} from "./OwnedUpgradeabilityProxy.sol";
 
 /**
  * @title TimeOwnedUpgradeabilityProxy
@@ -12,7 +12,7 @@ import { OwnedUpgradeabilityProxy } from "./OwnedUpgradeabilityProxy.sol";
  */
 contract TimeOwnedUpgradeabilityProxy is OwnedUpgradeabilityProxy {
 
-    uint256 public expiration;
+    bytes32 private constant expirationPosition = keccak256("trueUSD.expiration");
 
     /**
     * @dev the constructor sets the original owner of the contract to the sender account.
@@ -20,16 +20,30 @@ contract TimeOwnedUpgradeabilityProxy is OwnedUpgradeabilityProxy {
     constructor() public {
         _setUpgradeabilityOwner(msg.sender);
         // set expiration to ~4 months from now
-        expiration = block.timestamp + 124 days;
+        _setExpiration(block.timestamp + 124 days);
     }
 
     /**
      * @dev sets new expiration time
     */
-    function setExpiration(uint newExpirationTime) external onlyProxyOwner {
-        require (block.timestamp < expiration, "after expiration time");
-        require (block.timestamp < newExpirationTime, "new expiration time must be in the future");
-        expiration = newExpirationTime;
+    function setExpiration(uint256 newExpirationTime) external onlyProxyOwner {
+        require(block.timestamp < expiration(), "after expiration time");
+        require(block.timestamp < newExpirationTime, "new expiration time must be in the future");
+        _setExpiration(newExpirationTime);
+    }
+
+    function _setExpiration(uint256 newExpirationTime) internal onlyProxyOwner {
+        bytes32 position = expirationPosition;
+        assembly {
+            sstore(position, newExpirationTime)
+        }
+    }
+
+    function expiration() public view returns (uint256 _expiration) {
+        bytes32 position = expirationPosition;
+        assembly {
+            _expiration := sload(position)
+        }
     }
 
     /**
@@ -37,7 +51,7 @@ contract TimeOwnedUpgradeabilityProxy is OwnedUpgradeabilityProxy {
     * @param implementation representing the address of the new implementation to be set.
     */
     function upgradeTo(address implementation) public onlyProxyOwner {
-        require (block.timestamp < expiration, "after expration date");
+        require(block.timestamp < expiration(), "after expiration date");
         super.upgradeTo(implementation);
     }
-  }
+}
