@@ -61,6 +61,6 @@ contract('TimeOwnedUpgradeabilityProxy', function(accounts) {
     it('does not allow set after certain time passes', async () => {
         const currentExpiration = await getCurrentExpirationTimestamp()
         await timeMachine.advanceTime(60 * 60 * 24 * 124 + 10)
-        await assertRevert(this.timeOwnedUpgradeabilityProxy.setExpiration(currentExpiration + 60 * 60 * 24 * 124))
+        await assertRevert(this.timeOwnedUpgradeabilityProxy.setExpiration(currentExpiration + 20))
     })
 })
