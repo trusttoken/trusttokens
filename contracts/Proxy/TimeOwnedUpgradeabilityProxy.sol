@@ -26,9 +26,9 @@ contract TimeOwnedUpgradeabilityProxy is OwnedUpgradeabilityProxy {
     /**
      * @dev sets new expiration time
     */
-    function setExpiration() external onlyProxyOwner {
+    function setExpiration(uint newExpirationTime) external onlyProxyOwner {
         require (block.timestamp < expiration, "after expration date");
-        expiration = expiration + 124 days;
+        expiration = expiration + newExpirationTime;
     }
 
     /**

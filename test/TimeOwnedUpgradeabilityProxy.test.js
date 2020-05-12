@@ -28,7 +28,7 @@ contract('TimeOwnedUpgradeabilityProxy', function(accounts) {
 
     it('allows set before certain time passes', async () => {
         await timeMachine.advanceTime(60 * 60 * 24 * 124 - 10)
-        await this.timeOwnedUpgradeabilityProxy.setExpiration()
+        await this.timeOwnedUpgradeabilityProxy.setExpiration(60 * 60 * 24 * 124)
         await timeMachine.advanceTime(20)
         await this.timeOwnedUpgradeabilityProxy.upgradeTo(address)
         assert(address == await this.timeOwnedUpgradeabilityProxy.implementation())
@@ -36,6 +36,6 @@ contract('TimeOwnedUpgradeabilityProxy', function(accounts) {
 
     it('does not allow set after certain time passes', async () => {
         await timeMachine.advanceTime(60 * 60 * 24 * 124 + 10)
-        await assertRevert(this.timeOwnedUpgradeabilityProxy.setExpiration())
+        await assertRevert(this.timeOwnedUpgradeabilityProxy.setExpiration(60 * 60 * 24 * 124))
     })
 })
