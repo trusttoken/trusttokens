@@ -1,8 +1,9 @@
 pragma solidity ^0.5.13;
 
-import "./StakedToken.sol";
+import { StakedToken } from "./StakedToken.sol";
 import "./StakedTokenProxy.sol";
 import "./Proxy/OwnedUpgradeabilityProxy.sol";
+
 
 /**
  * @title StakingOpportunityFactory

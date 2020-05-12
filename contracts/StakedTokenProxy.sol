@@ -1,6 +1,9 @@
 pragma solidity ^0.5.13;
 
-import "./StakingAsset.sol";
+import { StakingAsset } from "./StakingAsset.sol";
+import { AStakedToken } from "./AStakedToken.sol";
+import { Registry } from "@trusttoken/registry/contracts/Registry.sol";
+import { RegistrySubscriber } from "./RegistrySubscriber.sol";
 
 /**
  * @title StakedTokenProxy
