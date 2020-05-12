@@ -10,8 +10,6 @@ const StakingOpportunityFactory = artifacts.require('StakingOpportunityFactory')
 const StakedTokenProxy = artifacts.require('StakedTokenProxy')
 const Liquidator = artifacts.require('Liquidator')
 const MultisigLiquidator = artifacts.require('MultisigLiquidatorMock')
-const Unlock = artifacts.require('UnlockTrustTokens')
-const Vault = artifacts.require('TrustTokenVault')
 const Types = artifacts.require('Types')
 const UniswapFactory = artifacts.require('uniswap_factory')
 const UniswapExchange = artifacts.require('uniswap_exchange')
@@ -109,32 +107,14 @@ contract('Deployment', function(accounts) {
                 //assert.equal(await this.trust.registry.call(), this.registry.address)
                 assert.equal(await this.trust.owner.call(), deployer)
             })
-            describe('Unlock', function() {
+            describe('Mint', function() {
                 beforeEach(async function() {
-                    this.vault = await Vault.new(this.trust.address, {from: owner});
-                    this.unlock = await Unlock.new(this.vault.address, {from: owner});
-                    await this.trust.transferOwnership(this.vault.address, {from: deployer});
-                    await this.vault.transferOwnership(this.unlock.address, {from: owner});
-                    await this.vault.claimTokenOwnership({from: owner})
-                    await this.vault.mintTrustTokens({from: owner});
-                    await this.unlock.claimVaultOwnership({from: owner})
-
                     // mint 100
+                    this.trust.mint(oneHundred, ONE_HUNDRED_BITCOIN, {from: deployer});
+                    this.trust.mint(account1, ONE_HUNDRED_ETHER, {from: deployer});
+                    this.trust.mint(account2, ONE_HUNDRED_ETHER, {from: deployer});
+
                     const now = parseInt(Date.now() / 1000)
-                    await this.unlock.scheduleUnlock(oneHundred, ONE_HUNDRED_BITCOIN, now, {from:owner})
-                    await this.unlock.claim(0, {from:oneHundred})
-                    await this.unlock.scheduleUnlock(account1, ONE_HUNDRED_BITCOIN, now, {from:owner})
-                    await this.unlock.claim(1, {from:account1})
-                    await this.unlock.scheduleUnlock(account2, ONE_HUNDRED_BITCOIN, now, {from:owner})
-                    await this.unlock.claim(2, {from:account2})
-                })
-                it('TrustToken is owned by Vault contract which is owned by Unlock contract', async function() {
-                    assert.equal(await this.trust.owner.call(), this.vault.address)
-                    assert.equal(await this.vault.owner.call(), this.unlock.address)
-                })
-                it('Vault owned by Unlock contract which is owned by owner', async function() {
-                    assert.equal(await this.vault.owner.call(), this.unlock.address)
-                    assert.equal(await this.unlock.owner.call(), owner)
                 })
                 it('issued TrustTokens', async function() {
                     assert(ONE_HUNDRED_BITCOIN.eq(await this.trust.balanceOf.call(oneHundred)))
