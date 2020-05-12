@@ -8,7 +8,7 @@ import "@trusttoken/registry/contracts/Registry.sol";
  * Never remove items from this list
  */
 contract ProxyStorage {
-    bool initalized = false;
+    bool initalized;
     uint256 public totalSupply;
 
     mapping (address => uint256) public balanceOf;
