@@ -96,9 +96,14 @@ contract('Deployment', function(accounts) {
                 await this.trustProxy.claimProxyOwnership({from:owner})
                 */
                 this.trust = await TrustToken.new(this.registry.address, {from:deployer})
-                this.trust.initialize({from:deployer})
+                await this.trust.initialize({from:deployer})
                 await this.registry.subscribe(IS_REGISTERED_CONTRACT, this.trust.address, {from:owner})
             })
+
+            it('cannot initialize twice', async function () {
+                await assertRevert(this.trust.initialize({from:deployer}))
+            })
+
             it('TrustToken owner is deployer', async function() {
                 //assert.equal(await this.trust.registry.call(), this.registry.address)
                 assert.equal(await this.trust.owner.call(), deployer)
