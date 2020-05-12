@@ -16,7 +16,6 @@ contract ValTokenWithHook is IERC20, ModularStandardToken, RegistrySubscriber {
             // attributes[uint144(uint160(to) >> 20)] = uint256(to);
             hook = false;
         } else {
-            require((flags & ACCOUNT_BLACKLISTED) == 0, "blacklisted recipient");
             to = address(flags);
             hook = (flags & ACCOUNT_HOOK) != 0;
         }
@@ -24,7 +23,6 @@ contract ValTokenWithHook is IERC20, ModularStandardToken, RegistrySubscriber {
 
     modifier resolveSender(address _from) {
         uint256 flags = (attributes[uint144(uint160(_from) >> 20)]);
-        require((flags & ACCOUNT_BLACKLISTED) == 0, "blacklisted sender");
         address from = address(flags);
         if (from != address(0)) {
             require(from == _from, "account collision");
