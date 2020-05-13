@@ -12,7 +12,7 @@ import {OwnedUpgradeabilityProxy} from "./OwnedUpgradeabilityProxy.sol";
  */
 contract TimeOwnedUpgradeabilityProxy is OwnedUpgradeabilityProxy {
 
-    bytes32 private constant expirationPosition = keccak256("trueUSD.expiration");
+    bytes32 private constant expirationPosition = bytes32(uint256(keccak256('trusttoken.expiration')) - 1);
 
     /**
     * @dev the constructor sets the original owner of the contract to the sender account.
