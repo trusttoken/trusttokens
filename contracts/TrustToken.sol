@@ -13,15 +13,21 @@ import "./ClaimableContract.sol";
  */
 contract TrustToken is ValTokenWithHook, ClaimableContract {
     using SafeMath for uint256;
+    Registry registry_;
     uint256 constant MAX_SUPPLY = 145000000000000000;
     /**
      * @dev initialize trusttoken and give ownership to sender
      * This is necessary to set ownership for proxy
      */
-    function initialize() public {
+    function initialize(Registry _registry) public {
         require(!initalized, "already initalized");
+        registry_ = _registry;
         owner_ = msg.sender;
         initalized = true;
+    }
+
+    function registry() internal view returns (Registry) {
+        return registry_;
     }
 
     /**
