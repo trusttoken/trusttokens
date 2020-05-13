@@ -26,11 +26,21 @@ contract('StakedAsset', function(accounts) {
         this.rewardToken = await TrueUSD.new({ from: issuer });
         this.stakeToken = await TrustToken.new(this.registry.address, { from: issuer });
         await this.stakeToken.initialize({ from: issuer });
-        this.poolProxy = await OwnedUpgradeabilityProxy.new({from: owner})
-        this.poolImplementation = await StakedToken.new(this.stakeToken.address, this.rewardToken.address, this.registry.address, fakeLiquidator, {from: owner})
-        this.poolProxy.upgradeTo(this.poolImplementation.address)
-        this.pool = StakedToken.at(this.poolProxy.address)
-        this.pool.configure(this.stakeToken.address, this.rewardToken.address, this.registry.address, fakeLiquidator, {from: owner})
+
+        /*
+        this.registryProxy = await OwnedUpgradeabilityProxy.new({from:deployer})
+        this.registryImplementation = await Registry.new({from:deployer})
+        await this.registryProxy.upgradeTo(this.registryImplementation.address, {from:deployer})
+        this.registry = await Registry.at(this.registryProxy.address)
+        await this.registry.initialize({from:deployer})
+        */
+
+        this.poolProxy = await OwnedUpgradeabilityProxy.new({from: issuer})
+        this.poolImplementation = await StakedToken.new(this.stakeToken.address, this.rewardToken.address, this.registry.address, fakeLiquidator, {from: issuer})
+        await this.poolProxy.upgradeTo(this.poolImplementation.address, { from: issuer })
+        this.pool = await StakedToken.at(this.poolProxy.address)
+        await this.pool.configure(this.stakeToken.address, this.rewardToken.address, this.registry.address, fakeLiquidator, {from: issuer})
+        
         await this.rewardToken.setRegistry(this.registry.address, {from: issuer})
         await this.rewardToken.mint(oneHundred, ONE_HUNDRED_ETHER, {from:issuer});
         await this.stakeToken.mint(oneHundred, ONE_HUNDRED_BITCOIN, {from:issuer});

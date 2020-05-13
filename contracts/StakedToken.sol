@@ -14,7 +14,6 @@ contract StakedToken is AStakedToken {
     StakingAsset rewardAsset_;
     Registry registry_;
     address liquidator_;
-    address deployer;
 
     constructor(StakingAsset _stakeAsset, StakingAsset _rewardAsset, Registry _registry, address _liquidator) public {
         stakeAsset_ = _stakeAsset;
@@ -22,12 +21,7 @@ contract StakedToken is AStakedToken {
         registry_ = _registry;
         liquidator_ = _liquidator;
         initialize();
-        deployer = msg.sender;
-    }
-
-    modifier onlyDeployer() {
-        require(msg.sender == deployer, "only deployer can configure contract");
-        _;
+        initalized = true;
     }
 
     /**
@@ -36,16 +30,15 @@ contract StakedToken is AStakedToken {
     function configure(
         StakingAsset _stakeAsset, 
         StakingAsset _rewardAsset, 
-        Registry _registry, 
+        Registry _registry,
         address _liquidator
-    ) external onlyDeployer {
-        require(!initalized);
+    ) external {
+        require(!initalized, "already initalized StakedToken");
         stakeAsset_ = _stakeAsset;
         rewardAsset_ = _rewardAsset;
         registry_ = _registry;
         liquidator_ = _liquidator;
         initialize();
-        owner_ = msg.sender;
         initalized = true;
         
     }
