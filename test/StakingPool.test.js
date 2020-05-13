@@ -24,8 +24,8 @@ contract('StakedAsset', function(accounts) {
     beforeEach(async function() {
         this.registry = await Registry.new({ from: owner });
         this.rewardToken = await TrueUSD.new({ from: issuer });
-        this.stakeToken = await TrustToken.new(this.registry.address, { from: issuer });
-        await this.stakeToken.initialize({ from: issuer });
+        this.stakeToken = await TrustToken.new({ from: issuer });
+        await this.stakeToken.initialize(this.registry.address, { from: issuer });
 
         this.poolProxy = await OwnedUpgradeabilityProxy.new({from: issuer})
         this.poolImplementation = await StakedToken.new({from: issuer})
