@@ -36,11 +36,11 @@ contract('StakedAsset', function(accounts) {
         */
 
         this.poolProxy = await OwnedUpgradeabilityProxy.new({from: issuer})
-        this.poolImplementation = await StakedToken.new(this.stakeToken.address, this.rewardToken.address, this.registry.address, fakeLiquidator, {from: issuer})
+        this.poolImplementation = await StakedToken.new({from: issuer})
         await this.poolProxy.upgradeTo(this.poolImplementation.address, { from: issuer })
         this.pool = await StakedToken.at(this.poolProxy.address)
         await this.pool.configure(this.stakeToken.address, this.rewardToken.address, this.registry.address, fakeLiquidator, {from: issuer})
-        
+
         await this.rewardToken.setRegistry(this.registry.address, {from: issuer})
         await this.rewardToken.mint(oneHundred, ONE_HUNDRED_ETHER, {from:issuer});
         await this.stakeToken.mint(oneHundred, ONE_HUNDRED_BITCOIN, {from:issuer});

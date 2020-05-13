@@ -53,7 +53,8 @@ contract StakingOpportunityFactory {
 	 * @return StakedToken created by this contract.
 	 */
 	function createStakingOpportunity(StakingAsset _stakeAsset, StakingAsset _rewardAsset, address _liquidator) external returns (StakedToken) {
-		StakedToken result = new StakedToken(_stakeAsset, _rewardAsset, Registry(address(this)), _liquidator);
+		StakedToken result = new StakedToken();
+		result.configure(_stakeAsset, _rewardAsset, Registry(address(this)), _liquidator);
 		// recieve fallbacks from TrueUSD and TrustTokens
 		registry.setAttributeValue(address(result), IS_REGISTERED_CONTRACT, 1);
 		emit StakingOpportunity(result, false);

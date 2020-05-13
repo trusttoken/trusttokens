@@ -15,21 +15,12 @@ contract StakedToken is AStakedToken {
     Registry registry_;
     address liquidator_;
 
-    constructor(StakingAsset _stakeAsset, StakingAsset _rewardAsset, Registry _registry, address _liquidator) public {
-        stakeAsset_ = _stakeAsset;
-        rewardAsset_ = _rewardAsset;
-        registry_ = _registry;
-        liquidator_ = _liquidator;
-        initialize();
-        initalized = true;
-    }
-
     /**
      * @dev configure this contract
      */
     function configure(
-        StakingAsset _stakeAsset, 
-        StakingAsset _rewardAsset, 
+        StakingAsset _stakeAsset,
+        StakingAsset _rewardAsset,
         Registry _registry,
         address _liquidator
     ) external {
@@ -40,17 +31,20 @@ contract StakedToken is AStakedToken {
         liquidator_ = _liquidator;
         initialize();
         initalized = true;
-        
     }
+
     function stakeAsset() internal view returns (StakingAsset) {
         return stakeAsset_;
     }
+
     function rewardAsset() internal view returns (StakingAsset) {
         return rewardAsset_;
     }
+
     function registry() internal view returns (Registry) {
         return registry_;
     }
+
     function liquidator() internal view returns (address) {
         return liquidator_;
     }
