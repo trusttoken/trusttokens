@@ -32,11 +32,13 @@ contract MockLiquidatorAirswap is ALiquidatorAirswap {
         initialized = false;
         emit OwnershipTransferred(address(0), owner);
     }
+    
     function configure() external onlyOwner {
         require(!initialized, "already initialized");
         initialized = true;
         initialize();
     }
+    
     function setPool(address _pool) external onlyOwner {
         pool_ = _pool;
     }

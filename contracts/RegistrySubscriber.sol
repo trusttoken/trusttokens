@@ -1,6 +1,6 @@
 pragma solidity ^0.5.13;
 
-import "./ProxyStorage.sol";
+import { ProxyStorage, Registry } from "./ProxyStorage.sol";
 
 contract RegistrySubscriber is ProxyStorage {
     // Registry Attributes
