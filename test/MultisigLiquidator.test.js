@@ -32,8 +32,8 @@ contract('MultisigLiquidator', function(accounts) {
         this.uniswapFactory.initializeFactory(this.uniswapTemplate.address)
         this.registry = await Registry.new({ from: owner });
         this.rewardToken = await TrueUSD.new({ from: issuer });
-        this.stakeToken = await MockTrustToken.new(this.registry.address, { from: issuer });
-        this.stakeToken.initialize({ from: issuer });
+        this.stakeToken = await MockTrustToken.new({ from: issuer });
+        this.stakeToken.initialize(this.registry.address, { from: issuer });
         this.outputUniswapAddress = (await this.uniswapFactory.createExchange(this.rewardToken.address)).logs[0].args.exchange
         this.outputUniswap = await UniswapExchange.at(this.outputUniswapAddress)
         this.stakeUniswap = await UniswapExchange.at((await this.uniswapFactory.createExchange(this.stakeToken.address)).logs[0].args.exchange)

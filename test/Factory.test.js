@@ -29,8 +29,8 @@ contract('StakingOpportunityFactory', function(accounts) {
     beforeEach(async function() {
         this.registry = await Registry.new({ from: owner });
         this.rewardToken = await ValTokenWithHook.new({ from: issuer });
-        this.stakeToken = await TrustToken.new(this.registry.address, { from: issuer });
-        this.stakeToken.initialize({ from: issuer });
+        this.stakeToken = await TrustToken.new({ from: issuer });
+        this.stakeToken.initialize(this.registry.address, { from: issuer });
         await this.rewardToken.setRegistry(this.registry.address, {from: issuer})
         await this.rewardToken.mint(oneHundred, ONE_HUNDRED_ETHER, {from:issuer});
         await this.stakeToken.mint(oneHundred, ONE_HUNDRED_BITCOIN, {from:issuer});

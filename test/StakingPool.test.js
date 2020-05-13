@@ -2,6 +2,7 @@ const Registry = artifacts.require('RegistryMock')
 const StakedToken = artifacts.require('StakedToken')
 const TrustToken = artifacts.require('MockTrustToken')
 const TrueUSD = artifacts.require('MockERC20Token')
+const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy')
 
 const bytes32 = require('@trusttoken/registry/test/helpers/bytes32.js')
 const assertRevert = require('./helpers/assertRevert.js')
@@ -23,9 +24,15 @@ contract('StakedAsset', function(accounts) {
     beforeEach(async function() {
         this.registry = await Registry.new({ from: owner });
         this.rewardToken = await TrueUSD.new({ from: issuer });
-        this.stakeToken = await TrustToken.new(this.registry.address, { from: issuer });
-        await this.stakeToken.initialize({ from: issuer });
-        this.pool = await StakedToken.new(this.stakeToken.address, this.rewardToken.address, this.registry.address, fakeLiquidator, {from: owner})
+        this.stakeToken = await TrustToken.new({ from: issuer });
+        await this.stakeToken.initialize(this.registry.address, { from: issuer });
+
+        this.poolProxy = await OwnedUpgradeabilityProxy.new({from: issuer})
+        this.poolImplementation = await StakedToken.new({from: issuer})
+        await this.poolProxy.upgradeTo(this.poolImplementation.address, { from: issuer })
+        this.pool = await StakedToken.at(this.poolProxy.address)
+        await this.pool.configure(this.stakeToken.address, this.rewardToken.address, this.registry.address, fakeLiquidator, {from: issuer})
+
         await this.rewardToken.setRegistry(this.registry.address, {from: issuer})
         await this.rewardToken.mint(oneHundred, ONE_HUNDRED_ETHER, {from:issuer});
         await this.stakeToken.mint(oneHundred, ONE_HUNDRED_BITCOIN, {from:issuer});
