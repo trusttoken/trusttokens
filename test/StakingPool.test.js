@@ -27,14 +27,6 @@ contract('StakedAsset', function(accounts) {
         this.stakeToken = await TrustToken.new(this.registry.address, { from: issuer });
         await this.stakeToken.initialize({ from: issuer });
 
-        /*
-        this.registryProxy = await OwnedUpgradeabilityProxy.new({from:deployer})
-        this.registryImplementation = await Registry.new({from:deployer})
-        await this.registryProxy.upgradeTo(this.registryImplementation.address, {from:deployer})
-        this.registry = await Registry.at(this.registryProxy.address)
-        await this.registry.initialize({from:deployer})
-        */
-
         this.poolProxy = await OwnedUpgradeabilityProxy.new({from: issuer})
         this.poolImplementation = await StakedToken.new({from: issuer})
         await this.poolProxy.upgradeTo(this.poolImplementation.address, { from: issuer })
