@@ -1,6 +1,6 @@
 {
   "name": "@trusttoken/trusttokens",
-  "version": "0.1.4",
+  "version": "0.1.8",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -20,6 +20,7 @@
     "contracts"
   ],
   "dependencies": {
+    "@openzeppelin/contracts": "^3.0.1",
     "@trusttoken/registry": "0.1.2",
     "openzeppelin-solidity": "2.4.0",
     "wjm-airswap-swap": "5.0.1"

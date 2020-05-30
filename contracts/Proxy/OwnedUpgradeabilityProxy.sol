@@ -112,7 +112,7 @@ contract OwnedUpgradeabilityProxy {
     * @dev Allows the proxy owner to upgrade the current version of the proxy.
     * @param implementation representing the address of the new implementation to be set.
     */
-    function upgradeTo(address implementation) external onlyProxyOwner {
+    function upgradeTo(address implementation) public onlyProxyOwner {
         address currentImplementation;
         bytes32 position = implementationPosition;
         assembly {
