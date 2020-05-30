@@ -1,11 +1,11 @@
 const Registry = artifacts.require('RegistryMock')
-const StakedToken = artifacts.require('MockStakedToken')
-const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy')
+const StakedToken = artifacts.require('StakedToken')
 const TrustToken = artifacts.require('MockTrustToken')
-const TrueUSD = artifacts.require('TrueUSD')
+const TrueUSD = artifacts.require('MockERC20Token')
+const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy')
 
-const bytes32 = require('../true-currencies/test/helpers/bytes32.js')
-const assertRevert = require('../true-currencies/test/helpers/assertRevert.js')['default']
+const bytes32 = require('@trusttoken/registry/test/helpers/bytes32.js')
+const assertRevert = require('./helpers/assertRevert.js')
 
 const IS_DEPOSIT_ADDRESS = bytes32('isDepositAddress')
 const IS_REGISTERED_CONTRACT = bytes32('isRegisteredContract')
@@ -24,8 +24,15 @@ contract('StakedAsset', function(accounts) {
     beforeEach(async function() {
         this.registry = await Registry.new({ from: owner });
         this.rewardToken = await TrueUSD.new({ from: issuer });
-        this.stakeToken = await TrustToken.new(this.registry.address, { from: issuer });
-        this.pool = await StakedToken.new(this.stakeToken.address, this.rewardToken.address, this.registry.address, fakeLiquidator, {from: owner})
+        this.stakeToken = await TrustToken.new({ from: issuer });
+        await this.stakeToken.initialize(this.registry.address, { from: issuer });
+
+        this.poolProxy = await OwnedUpgradeabilityProxy.new({from: issuer})
+        this.poolImplementation = await StakedToken.new({from: issuer})
+        await this.poolProxy.upgradeTo(this.poolImplementation.address, { from: issuer })
+        this.pool = await StakedToken.at(this.poolProxy.address)
+        await this.pool.configure(this.stakeToken.address, this.rewardToken.address, this.registry.address, fakeLiquidator, {from: issuer})
+
         await this.rewardToken.setRegistry(this.registry.address, {from: issuer})
         await this.rewardToken.mint(oneHundred, ONE_HUNDRED_ETHER, {from:issuer});
         await this.stakeToken.mint(oneHundred, ONE_HUNDRED_BITCOIN, {from:issuer});
@@ -156,8 +163,8 @@ contract('StakedAsset', function(accounts) {
             })
             describe('after unstake period', function() {
                 beforeEach(async function() {
-                    // fast forward 4 weeks
-                    await timeMachine.advanceTime(28 * 24 * 60 * 60)
+                    // fast forward 2 weeks
+                    await timeMachine.advanceTime(14 * 24 * 60 * 60)
                 })
                 it('finalizes unstake', async function() {
                     await this.pool.finalizeUnstake(account2, [this.timestamp], {from:oneHundred})
@@ -194,8 +201,8 @@ contract('StakedAsset', function(accounts) {
             })
             describe('after unstake period', function() {
                 beforeEach(async function() {
-                    // fast forward 4 weeks
-                    await timeMachine.advanceTime(28 * 24 * 60 * 60)
+                    // fast forward 2 weeks
+                    await timeMachine.advanceTime(14 * 24 * 60 * 60)
                 })
                 it('finalizes unstake', async function() {
                     await this.pool.finalizeUnstake(account2, [this.timestamp], {from:oneHundred})
@@ -249,8 +256,8 @@ contract('StakedAsset', function(accounts) {
             })
             describe('after unstake period', function() {
                 beforeEach(async function() {
-                    // fast forward 4 weeks
-                    await timeMachine.advanceTime(28 * 24 * 60 * 60)
+                    // fast forward 2 weeks
+                    await timeMachine.advanceTime(14 * 24 * 60 * 60)
                 })
                 it('finalizes unstake', async function() {
                     await this.pool.finalizeUnstake(account2, [this.timestamp1, this.timestamp2], {from:oneHundred})
@@ -269,7 +276,7 @@ contract('StakedAsset', function(accounts) {
                 assert.equal("TrustToken staked for TrueUSD", await this.pool.name.call())
             })
             it('symbol', async function() {
-                assert.equal("TRUST:TUSD", await this.pool.symbol.call())
+                assert.equal("TRU:TUSD", await this.pool.symbol.call())
             })
             it('decimals', async function() {
                 assert.equal(11, await this.pool.decimals.call())

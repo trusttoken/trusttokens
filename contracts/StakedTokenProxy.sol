@@ -1,9 +1,15 @@
 pragma solidity ^0.5.13;
 
+import { StakingAsset } from "./StakingAsset.sol";
+import { AStakedToken } from "./AStakedToken.sol";
+import { Registry } from "@trusttoken/registry/contracts/Registry.sol";
+import { RegistrySubscriber } from "./RegistrySubscriber.sol";
 
-import "../StakingAsset.sol";
-
-contract StakedTokenProxyImplementation is StakedToken {
+/**
+ * @title StakedTokenProxy
+ * @dev Proxy Implementation of AStakedToken
+**/
+contract StakedTokenProxy is AStakedToken {
     StakingAsset stakeAsset_;
     StakingAsset rewardAsset_;
     Registry registry_;
@@ -34,7 +40,7 @@ contract StakedTokenProxyImplementation is StakedToken {
     }
 }
 
-contract StakedTokenProxyMigrationMock is StakedTokenProxyImplementation {
+contract StakedTokenProxyMigration is StakedTokenProxy {
     uint256 public importantNumber;
     function onUpgrade(uint256 _importantNumber) external {
         require(importantNumber == 0, "already migrated");

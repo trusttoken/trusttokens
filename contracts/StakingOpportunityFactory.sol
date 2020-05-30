@@ -1,8 +1,9 @@
 pragma solidity ^0.5.13;
 
-import "./mocks/MockStakedToken.sol";
-import "./mocks/StakedTokenProxyImplementation.sol";
-import "../true-currencies/contracts/Proxy/OwnedUpgradeabilityProxy.sol";
+import { StakedToken } from "./StakedToken.sol";
+import "./StakedTokenProxy.sol";
+import "./Proxy/OwnedUpgradeabilityProxy.sol";
+
 
 /**
  * @title StakingOpportunityFactory
@@ -17,7 +18,7 @@ contract StakingOpportunityFactory {
 	Registry public registry; // actual registry
 
 	// initial implemetation
-	/*StakedTokenProxyImplementation*/ address public initializer;
+	/*StakedTokenProxy*/ address public initializer;
 
 	// current implementation
 	address public currentImplementation;
@@ -30,7 +31,7 @@ contract StakingOpportunityFactory {
 	 * Initializes contract with real registry and first implementation.
 	 * @param _registry registry to set (should be actual registry)
 	 */
-	constructor(Registry _registry, address /*StakedTokenProxyImplementation*/ _implementation) public {
+	constructor(Registry _registry, address /*StakedTokenProxy*/ _implementation) public {
 		owner = msg.sender;
 		emit OwnershipTransferred(address(0), owner);
 		registry = _registry;
@@ -42,17 +43,18 @@ contract StakingOpportunityFactory {
 	event StakingOpportunity(StakedToken indexed opportunity, bool indexed upgradeable);
 	event UpgradeFailure(address indexed proxy, address indexed priorImplementation, address indexed nextImplementation, bytes failure);
 
-	/** 
+	/**
 	 * @dev Creates a StakedToken (staking opportunity)
 	 * Given a staking asset, reward asset, and liqudiator address creates
 	 * a new staking opportunity and stores it in registry.
-	 * @param _stakeAsset Asset to stake. Usually TRUST.
+	 * @param _stakeAsset Asset to stake. Usually TRU.
 	 * @param _rewardAsset Asset to reward. Usually TUSD.
 	 * @param _liquidator address of liquidator contract for this opportunity
 	 * @return StakedToken created by this contract.
 	 */
 	function createStakingOpportunity(StakingAsset _stakeAsset, StakingAsset _rewardAsset, address _liquidator) external returns (StakedToken) {
-		StakedToken result = new MockStakedToken(_stakeAsset, _rewardAsset, Registry(address(this)), _liquidator);
+		StakedToken result = new StakedToken();
+		result.configure(_stakeAsset, _rewardAsset, Registry(address(this)), _liquidator);
 		// recieve fallbacks from TrueUSD and TrustTokens
 		registry.setAttributeValue(address(result), IS_REGISTERED_CONTRACT, 1);
 		emit StakingOpportunity(result, false);
@@ -63,7 +65,7 @@ contract StakingOpportunityFactory {
 	 * @dev Creates a StakedToken (staking opportunity)
 	 * Given a staking asset, reward asset, and liqudiator address creates
 	 * a new proxy staking opportunity and stores it in registry.
-	 * @param _stakeAsset Asset to stake. Usually TRUST.
+	 * @param _stakeAsset Asset to stake. Usually TRU.
 	 * @param _rewardAsset Asset to reward. Usually TUSD.
 	 * @param _liquidator address of liquidator contract for this opportunity
 	 * @return StakedToken created by this contract.
@@ -72,7 +74,7 @@ contract StakingOpportunityFactory {
 		OwnedUpgradeabilityProxy proxy = new OwnedUpgradeabilityProxy();
 		address priorImplementation = initializer;
 		proxy.upgradeTo(priorImplementation);
-		StakedTokenProxyImplementation(address(proxy)).initialize(_stakeAsset, _rewardAsset, Registry(address(this)), _liquidator);
+		StakedTokenProxy(address(proxy)).initialize(_stakeAsset, _rewardAsset, Registry(address(this)), _liquidator);
 		address finalImplementation = currentImplementation;
 		if (finalImplementation != priorImplementation) {
 			proxy.upgradeTo(finalImplementation);
@@ -84,7 +86,7 @@ contract StakingOpportunityFactory {
 	}
 
 	/**
-	 * @dev Sync attribute values to children. 
+	 * @dev Sync attribute values to children.
 	 * @param attribute attribute to sync
 	 * @param accounts accounts to sync from
 	 * @param subscribers subscribers to sync to

@@ -1,6 +1,6 @@
 {
-  "name": "trusttokens",
-  "version": "0.0.1",
+  "name": "@trusttoken/trusttokens",
+  "version": "0.1.8",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -12,11 +12,15 @@
     "url": "git+https://github.com/trusttoken/trusttokens.git"
   },
   "author": "William Morriss",
-  "license": "MIT",
+  "license": "SEE LICENSE IN ./LICENSE",
   "bugs": {
     "url": "https://github.com/trusttoken/trusttokens/issues"
   },
+  "files": [
+    "contracts"
+  ],
   "dependencies": {
+    "@openzeppelin/contracts": "^3.0.1",
     "@trusttoken/registry": "0.1.2",
     "openzeppelin-solidity": "2.4.0",
     "wjm-airswap-swap": "5.0.1"
