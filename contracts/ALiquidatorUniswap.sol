@@ -6,7 +6,6 @@ import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "./ValSafeMath.sol";
 import "./ILiquidator.sol";
 import "@trusttoken/registry/contracts/Registry.sol";
-import "wjm-airswap-swap/contracts/Swap.sol";
 
 
 /**
