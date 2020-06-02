@@ -1,4 +1,4 @@
-pragma solidity ^0.5.13;
+pragma solidity 0.5.13;
 
 import { StakedToken } from "./StakedToken.sol";
 import "./StakedTokenProxy.sol";

@@ -1,6 +1,6 @@
 {
   "name": "@trusttoken/trusttokens",
-  "version": "0.1.6",
+  "version": "0.1.10",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -11,7 +11,7 @@
     "type": "git",
     "url": "git+https://github.com/trusttoken/trusttokens.git"
   },
-  "author": "William Morriss",
+  "author": "Harold Hyatt",
   "license": "SEE LICENSE IN ./LICENSE",
   "bugs": {
     "url": "https://github.com/trusttoken/trusttokens/issues"

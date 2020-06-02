@@ -1,4 +1,4 @@
-pragma solidity ^0.5.13;
+pragma solidity 0.5.13;
 
 import { StakingAsset } from "./StakingAsset.sol";
 import { AStakedToken } from "./AStakedToken.sol";
