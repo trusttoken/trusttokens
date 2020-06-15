@@ -19,7 +19,7 @@ contract RegistrySubscriber is ProxyStorage {
     uint256 constant ACCOUNT_HOOK            = 0x0000ff0000000000000000000000000000000000000000000000000000000000;
     uint256 constant ACCOUNT_HOOK_INV        = 0xffff00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
-    function registry() internal view returns (Registry);
+    function registry() public view returns (Registry);
 
     modifier onlyRegistry {
         require(msg.sender == address(registry()));

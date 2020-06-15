@@ -5,7 +5,7 @@ import "../ValTokenWithHook.sol";
 contract MockERC20Token is ValTokenWithHook {
   Registry registryAddress;
 
-  function registry() internal view returns (Registry) {
+  function registry() public view returns (Registry) {
     return registryAddress;
   }
 
