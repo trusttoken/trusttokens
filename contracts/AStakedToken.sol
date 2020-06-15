@@ -298,14 +298,9 @@ contract AStakedToken is ValTokenWithHook {
 
     /**
      * @dev Claim rewards and send to a destination.
-     * Fails if sender account is not KYC.
-     * KYC flag doesn't have to be synced to the registry.
      * @param _destination withdraw destination
      */
     function claimRewards(address _destination) external {
-        // check KYC attribte
-        require(attributes[uint144(uint160(msg.sender) >> 20)] & ACCOUNT_KYC != 0 || registry().getAttributeValue(msg.sender, PASSED_KYCAML) != 0, "please register at app.trusttoken.com");
-
         // calculate how much stake and rewards account has
         uint256 stake = balanceOf[msg.sender];
         if (stake == 0) {
