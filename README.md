@@ -30,17 +30,15 @@ If vyper fails, try installing a newer version or vyper==0.1.0b4.
    2. Each staking opportunity has a name which is a string, we are not going to enforce uniqueness
    3. TRUST staked on "TUSD" will have symbol "TRUST:TUSD"
    4. Unclaimed rewards are transferred with TRUST:TUSD and TUSD:TUSD as they are transferred.
-      1. Justification: Unclaimed rewards stay in the pool until they are claimed by an account that has passed KYC. If you sell your staked tokens or transfer your stake to another account you control, your unclaimed rewards travel with your stake. This allows you to move your stake to a multisig or between exchange accounts without unstaking or claiming. This prevents unclaimed rewards from becoming stuck in systems that don't know about them.
+      1. Justification: Unclaimed rewards stay in the pool until they are claimed. If you sell your staked tokens or transfer your stake to another account you control, your unclaimed rewards travel with your stake. This allows you to move your stake to a multisig or between exchange accounts without unstaking or claiming. This prevents unclaimed rewards from becoming stuck in systems that don't know about them.
    5. This token will be on a whitelist if and only if staking itself requires a whitelist
    6. Stake that's in the process of being pulled out is not a tradable ERC20 token
 3. Staking rewards are given out proportionally to stake in the smart contract when the staking reward comes in
-4. You must be on the Registry's KYC/AML list in order to claim rewards
-   1. The claimer can specify a recipient address, and either the recipient address or the claimer must be KYC'd in the registry
-5. Slashing stake
+4. Slashing stake
    1. Slashing stake will dilute the value of TRUST:TUSD and sTUSD by pulling TUSD and TRU
    2. See Liquidation Contract section below
-6. The TrustToken staking smart contract will be behind an upgradable proxy which will allow it to be easily upgraded by the owner multisig and then the auditor multisig
-7. You must wait for 21 days to pull out stake
+5. The TrustToken staking smart contract will be behind an upgradable proxy which will allow it to be easily upgraded by the owner multisig and then the auditor multisig
+6. You must wait for 21 days to pull out stake
    1. You don't get rewards when you are in this pending state
    2. Your stake can be slashed while you are in this pending state
    3. If pulling out all stake would leave behind unclaimed rewards, they are distributed to the remaining stakers.
