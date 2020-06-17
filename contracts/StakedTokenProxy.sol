@@ -26,16 +26,16 @@ contract StakedTokenProxy is AStakedToken {
         liquidator_ = _liquidator;
         initialize();
     }
-    function stakeAsset() internal view returns (StakingAsset) {
+    function stakeAsset() public view returns (StakingAsset) {
         return stakeAsset_;
     }
-    function rewardAsset() internal view returns (StakingAsset) {
+    function rewardAsset() public view returns (StakingAsset) {
         return rewardAsset_;
     }
-    function registry() internal view returns (Registry) {
+    function registry() public view returns (Registry) {
         return registry_;
     }
-    function liquidator() internal view returns (address) {
+    function liquidator() public view returns (address) {
         return liquidator_;
     }
 }

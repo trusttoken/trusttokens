@@ -59,13 +59,13 @@ contract AStakedToken is ValTokenWithHook {
     }
 
     /// @return ERC-20 stake asset
-    function stakeAsset() internal view returns (StakingAsset);
+    function stakeAsset() public view returns (StakingAsset);
 
     /// @return ERC-20 reward asset
-    function rewardAsset() internal view returns (StakingAsset);
+    function rewardAsset() public view returns (StakingAsset);
 
     /// @return liquidator address
-    function liquidator() internal view returns (address);
+    function liquidator() public view returns (address);
 
     // max int size to prevent overflow
     uint256 constant MAX_UINT256 = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;

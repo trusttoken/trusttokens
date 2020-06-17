@@ -43,6 +43,13 @@ contract('StakedAsset', function(accounts) {
         await this.registry.setAttributeValue(this.pool.address, IS_REGISTERED_CONTRACT, 1, {from:owner})
     })
     describe('Staked Asset', function() {
+        it('correctly sets addresses', async function() {
+            assert.equal(await this.pool.stakeAsset.call(), this.stakeToken.address)
+            assert.equal(await this.pool.rewardAsset.call(), this.rewardToken.address)
+            assert.equal(await this.pool.registry.call(), this.registry.address)
+            assert.equal(await this.pool.liquidator.call(), fakeLiquidator)
+        });
+
         it('allows deposit', async function() {
             await this.stakeToken.transfer(this.pool.address, ONE_HUNDRED_BITCOIN, {from: oneHundred})
             assert(ONE_HUNDRED_BITCOIN.eq(await this.stakeToken.balanceOf(this.pool.address)), "100 staked tokens")

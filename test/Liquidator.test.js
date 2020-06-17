@@ -83,6 +83,16 @@ contract('Liquidator', function(accounts) {
         await this.rewardToken.approve(this.airswap.address, ONE_HUNDRED_ETHER, {from: oneHundred})
         await this.stakeToken.approve(this.liquidatorUniswap.address, ONE_HUNDRED_BITCOIN, { from: fakePool })
     })
+
+    it('correctly sets addresses', async function() {
+        assert.equal(await this.liquidatorUniswap.outputToken.call(), this.rewardToken.address)
+        assert.equal(await this.liquidatorUniswap.stakeToken.call(), this.stakeToken.address)
+        assert.equal(await this.liquidatorUniswap.outputUniswapV1.call(), this.outputUniswap.address)
+        assert.equal(await this.liquidatorUniswap.stakeUniswapV1.call(), this.stakeUniswap.address)
+        assert.equal(await this.liquidatorUniswap.registry.call(), this.registry.address)
+        assert.equal(await this.liquidatorUniswap.pool.call(), fakePool)
+    });
+
     describe('Auth', function() {
         let nonce = 0
         let expiry = parseInt(Date.now() / 1000) + 12000

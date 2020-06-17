@@ -32,32 +32,32 @@ contract MockLiquidatorAirswap is ALiquidatorAirswap {
         initialized = false;
         emit OwnershipTransferred(address(0), owner);
     }
-    
+
     function configure() external onlyOwner {
         require(!initialized, "already initialized");
         initialized = true;
         initialize();
     }
-    
+
     function setPool(address _pool) external onlyOwner {
         pool_ = _pool;
     }
-    function pool() internal view returns (address) {
+    function pool() public view returns (address) {
         return pool_;
     }
-    function outputToken() internal view returns (IERC20) {
+    function outputToken() public view returns (IERC20) {
         return outputToken_;
     }
-    function stakeToken() internal view returns (IERC20) {
+    function stakeToken() public view returns (IERC20) {
         return stakeToken_;
     }
-    function registry() internal view returns (Registry) {
+    function registry() public view returns (Registry) {
         return registry_;
     }
-    function outputUniswapV1() internal view returns (UniswapV1) {
+    function outputUniswapV1() public view returns (UniswapV1) {
         return outputUniswap_;
     }
-    function stakeUniswapV1() internal view returns (UniswapV1) {
+    function stakeUniswapV1() public view returns (UniswapV1) {
         return stakeUniswap_;
     }
 }

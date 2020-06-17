@@ -9,13 +9,13 @@ import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 contract ILiquidator {
 
     /** @dev Get output token (token to get from liquidation exchange). */
-    function outputToken() internal view returns (IERC20);
+    function outputToken() public view returns (IERC20);
 
     /** @dev Get stake token (token to be liquidated). */
-    function stakeToken() internal view returns (IERC20);
+    function stakeToken() public view returns (IERC20);
 
     /** @dev Address of staking pool. */
-    function pool() internal view returns (address);
+    function pool() public view returns (address);
 
     /**
      * @dev Transfer stake without liquidation

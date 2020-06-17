@@ -26,7 +26,7 @@ contract TrustToken is ValTokenWithHook, ClaimableContract {
         initalized = true;
     }
 
-    function registry() internal view returns (Registry) {
+    function registry() public view returns (Registry) {
         return registry_;
     }
 

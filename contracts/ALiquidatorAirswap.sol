@@ -88,17 +88,17 @@ contract ALiquidatorAirswap is ILiquidator {
     // Liquidator is the actual implementation of ALiquidator
 
     /** @dev Get output token (token to get from liqudiation exchange). */
-    function outputToken() internal view returns (IERC20);
+    function outputToken() public view returns (IERC20);
     /** @dev Get stake token (token to be liquidated). */
-    function stakeToken() internal view returns (IERC20);
+    function stakeToken() public view returns (IERC20);
     /** @dev Output token on uniswap. */
-    function outputUniswapV1() internal view returns (UniswapV1);
+    function outputUniswapV1() public view returns (UniswapV1);
     /** @dev Stake token on uniswap. */
-    function stakeUniswapV1() internal view returns (UniswapV1);
+    function stakeUniswapV1() public view returns (UniswapV1);
     /** @dev Contract registry. */
-    function registry() internal view returns (Registry);
+    function registry() public view returns (Registry);
     /** @dev Address of staking pool. */
-    function pool() internal view returns (address);
+    function pool() public view returns (address);
 
     /**
      * @dev implementation constructor needs to call initialize
