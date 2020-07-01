@@ -30,7 +30,6 @@ interface UniswapV1Factory {
 /**
  * @title Abstract Uniswap Liquidator
  * @dev Liquidate staked tokenns on uniswap.
- * This is because there are multiple instances of AirswapV2.
  * StakingOpportunityFactory does not create a Liquidator, rather this must be created
  * Outside of the factory.
  */
@@ -47,7 +46,7 @@ contract ALiquidatorUniswap is ILiquidator {
     bytes32 constant APPROVED_BENEFICIARY = "approvedBeneficiary";
     uint256 constant LIQUIDATOR_CAN_RECEIVE     = 0xff00000000000000000000000000000000000000000000000000000000000000;
     uint256 constant LIQUIDATOR_CAN_RECEIVE_INV = 0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
-    // part of signature so that signing for airswap doesn't sign for all airswap instances
+
     uint256 constant MAX_UINT = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
     uint256 constant MAX_UINT128 = 0xffffffffffffffffffffffffffffffff;
     bytes2 EIP191_HEADER = 0x1901;
@@ -143,7 +142,6 @@ contract ALiquidatorUniswap is ILiquidator {
     /**
      * @dev Calcualte how much input we need to get a desired output
      * Is able to let us know if there is slippage in uniswap exchange rate
-     * and continue with Airswap
      * See./uniswap/uniswap_exchange.vy
      */
     function inputForUniswapV1Output(uint256 outputAmount, UniswapState memory outputUniswapV1State, UniswapState memory stakeUniswapV1State) internal pure returns (uint256 inputAmount) {
@@ -177,7 +175,6 @@ contract ALiquidatorUniswap is ILiquidator {
 
     /**
      * @dev Sells stake for underlying asset and pays to destination.
-     * Use airswap trades as long as they're better than uniswap.
      * Contract won't slip Uniswap this way.
      * If we reclaim more than we actually owe we award to stakers.
      * Not possible to convert back into TrustTokens here.
