@@ -1,11 +1,10 @@
-pragma solidity 0.5.13;
+// SPDX-License-Identifier: MIT
+pragma solidity 0.6.10;
 
-//pragma experimental ABIEncoderV2;
-
-import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./ValSafeMath.sol";
 import "./ILiquidator.sol";
-import "@trusttoken/registry/contracts/Registry.sol";
+import "./Registry/Registry.sol";
 
 
 /**
@@ -33,7 +32,7 @@ interface UniswapV1Factory {
  * StakingOpportunityFactory does not create a Liquidator, rather this must be created
  * Outside of the factory.
  */
-contract ALiquidatorUniswap is ILiquidator {
+abstract contract ALiquidatorUniswap is ILiquidator {
     using ValSafeMath for uint256;
 
     // owner, registry attributes
@@ -55,18 +54,12 @@ contract ALiquidatorUniswap is ILiquidator {
     // these variables must be known at construction time
     // Liquidator is the actual implementation of ALiquidator
 
-    /** @dev Get output token (token to get from liqudiation exchange). */
-    function outputToken() public view returns (IERC20);
-    /** @dev Get stake token (token to be liquidated). */
-    function stakeToken() public view returns (IERC20);
     /** @dev Output token on uniswap. */
-    function outputUniswapV1() public view returns (UniswapV1);
+    function outputUniswapV1() public view virtual returns (UniswapV1);
     /** @dev Stake token on uniswap. */
-    function stakeUniswapV1() public view returns (UniswapV1);
+    function stakeUniswapV1() public view virtual returns (UniswapV1);
     /** @dev Contract registry. */
-    function registry() public view returns (Registry);
-    /** @dev Address of staking pool. */
-    function pool() public view returns (address);
+    function registry() public view virtual returns (Registry);
 
     /**
      * @dev implementation constructor needs to call initialize
@@ -159,7 +152,7 @@ contract ALiquidatorUniswap is ILiquidator {
      * @dev Transfer stake without liquidation
      * requires LIQUIDATOR_CAN_RECEIVE flag (recipient must be registered)
      */
-    function reclaimStake(address _destination, uint256 _stake) external onlyOwner {
+    function reclaimStake(address _destination, uint256 _stake) external override onlyOwner {
         require(attributes[_destination] & LIQUIDATOR_CAN_RECEIVE != 0, "unregistered recipient");
         stakeToken().transferFrom(pool(), _destination, _stake);
     }
@@ -169,7 +162,7 @@ contract ALiquidatorUniswap is ILiquidator {
      * Transfer to the pool without creating a staking position.
      * Allows us to reward as staking or reward token.
      */
-    function returnStake(address _from, uint256 balance) external {
+    function returnStake(address _from, uint256 balance) external override {
         stakeToken().transferFrom(_from, pool(), balance);
     }
 
@@ -179,7 +172,7 @@ contract ALiquidatorUniswap is ILiquidator {
      * If we reclaim more than we actually owe we award to stakers.
      * Not possible to convert back into TrustTokens here.
      */
-    function reclaim(address _destination, int256 _debt) external onlyOwner {
+    function reclaim(address _destination, int256 _debt) external override onlyOwner {
         require(_debt > 0, "Must reclaim positive amount");
         require(_debt < int256(MAX_UINT128), "reclaim amount too large");
         require(attributes[_destination] & LIQUIDATOR_CAN_RECEIVE != 0, "unregistered recipient");

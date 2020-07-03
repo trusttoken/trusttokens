@@ -21,8 +21,7 @@
   ],
   "dependencies": {
     "@openzeppelin/contracts": "^3.0.1",
-    "@trusttoken/registry": "0.1.2",
-    "openzeppelin-solidity": "2.4.0"
+    "@trusttoken/registry": "0.1.2"
   },
   "homepage": "https://github.com/trusttoken/trusttokens#readme",
   "devDependencies": {

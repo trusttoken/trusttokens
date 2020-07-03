@@ -10,7 +10,7 @@ const TrueUSD = artifacts.require('MockERC20Token')
 const UniswapFactory = artifacts.require('uniswap_factory')
 const UniswapExchange = artifacts.require('uniswap_exchange')
 const Registry = artifacts.require('RegistryMock')
-const bytes32 = require('@trusttoken/registry/test/helpers/bytes32.js')
+const bytes32 = require('./helpers/bytes32.js')
 const APPROVED_BENEFICIARY = bytes32('approvedBeneficiary')
 
 

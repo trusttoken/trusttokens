@@ -1,6 +1,7 @@
-pragma solidity 0.5.13;
+// SPDX-License-Identifier: MIT
+pragma solidity 0.6.10;
 
-import "@trusttoken/registry/contracts/Registry.sol";
+import "./Registry/Registry.sol";
 
 /**
  * All storage must be declared here

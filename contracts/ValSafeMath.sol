@@ -1,4 +1,5 @@
-pragma solidity 0.5.13;
+// SPDX-License-Identifier: MIT
+pragma solidity 0.6.10;
 
 /**
  * Forked subset of Openzeppelin SafeMath allowing custom underflow/overflow messages
