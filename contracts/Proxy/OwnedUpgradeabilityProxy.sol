@@ -60,7 +60,7 @@ contract OwnedUpgradeabilityProxy {
 
     /**
     * @dev Tells the address of the owner
-    * @return pendingOwner the address of the owner
+    * @return pendingOwner the address of the pending owner
     */
     function pendingProxyOwner() public view returns (address pendingOwner) {
         bytes32 position = pendingProxyOwnerPosition;

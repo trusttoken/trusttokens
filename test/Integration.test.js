@@ -6,8 +6,8 @@ const Liquidator = artifacts.require('Liquidator')
 const UniswapFactory = artifacts.require('uniswap_factory')
 const UniswapExchange = artifacts.require('uniswap_exchange')
 
-const bytes32 = require('@trusttoken/registry/test/helpers/bytes32.js')
-const assertRevert = require('@trusttoken/registry/test/helpers/assertRevert.js')
+const bytes32 = require('./helpers/bytes32.js')
+const assertRevert = require('./helpers/assertRevert.js')
 const IS_DEPOSIT_ADDRESS = bytes32('isDepositAddress')
 const IS_REGISTERED_CONTRACT = bytes32('isRegisteredContract')
 const BLACKLISTED = '0x6973426c61636b6c697374656400000000000000000000000000000000000000'
