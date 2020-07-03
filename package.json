@@ -20,8 +20,7 @@
     "contracts"
   ],
   "dependencies": {
-    "@openzeppelin/contracts": "^3.0.1",
-    "@trusttoken/registry": "0.1.2"
+    "@openzeppelin/contracts": "^3.0.1"
   },
   "homepage": "https://github.com/trusttoken/trusttokens#readme",
   "devDependencies": {
