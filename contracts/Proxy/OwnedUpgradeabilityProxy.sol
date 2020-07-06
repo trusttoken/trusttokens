@@ -1,4 +1,5 @@
-pragma solidity 0.5.13;
+// SPDX-License-Identifier: MIT
+pragma solidity 0.6.10;
 
 /**
  * @title OwnedUpgradeabilityProxy
@@ -18,7 +19,7 @@ contract OwnedUpgradeabilityProxy {
     * @param pendingOwner representing the address of the pending owner
     */
     event NewPendingOwner(address currentOwner, address pendingOwner);
-    
+
     // Storage position of the owner and pendingOwner of the contract
     bytes32 private constant proxyOwnerPosition = 0x6279e8199720cf3557ecd8b58d667c8edc486bd1cf3ad59ea9ebdfcae0d0dfac;//keccak256("trueUSD.proxy.owner");
     bytes32 private constant pendingProxyOwnerPosition = 0x8ddbac328deee8d986ec3a7b933a196f96986cb4ee030d86cc56431c728b83f4;//keccak256("trueUSD.pending.proxy.owner");
@@ -48,7 +49,7 @@ contract OwnedUpgradeabilityProxy {
 
     /**
     * @dev Tells the address of the owner
-    * @return the address of the owner
+    * @return owner the address of the owner
     */
     function proxyOwner() public view returns (address owner) {
         bytes32 position = proxyOwnerPosition;
@@ -59,7 +60,7 @@ contract OwnedUpgradeabilityProxy {
 
     /**
     * @dev Tells the address of the owner
-    * @return the address of the owner
+    * @return pendingOwner the address of the pending owner
     */
     function pendingProxyOwner() public view returns (address pendingOwner) {
         bytes32 position = pendingProxyOwnerPosition;
@@ -112,7 +113,7 @@ contract OwnedUpgradeabilityProxy {
     * @dev Allows the proxy owner to upgrade the current version of the proxy.
     * @param implementation representing the address of the new implementation to be set.
     */
-    function upgradeTo(address implementation) public onlyProxyOwner {
+    function upgradeTo(address implementation) public virtual onlyProxyOwner {
         address currentImplementation;
         bytes32 position = implementationPosition;
         assembly {
@@ -144,18 +145,22 @@ contract OwnedUpgradeabilityProxy {
     * @dev Fallback function allowing to perform a delegatecall to the given implementation.
     * This function will return whatever the implementation call returns
     */
-    function() external payable {
+    fallback() external payable {
         bytes32 position = implementationPosition;
-        
+
         assembly {
             let ptr := mload(0x40)
-            calldatacopy(ptr, returndatasize, calldatasize)
-            let result := delegatecall(gas, sload(position), ptr, calldatasize, returndatasize, returndatasize)
-            returndatacopy(ptr, 0, returndatasize)
+            calldatacopy(ptr, returndatasize(), calldatasize())
+            let result := delegatecall(gas(), sload(position), ptr, calldatasize(), returndatasize(), returndatasize())
+            returndatacopy(ptr, 0, returndatasize())
 
             switch result
-            case 0 { revert(ptr, returndatasize) }
-            default { return(ptr, returndatasize) }
+            case 0 { revert(ptr, returndatasize()) }
+            default { return(ptr, returndatasize()) }
         }
+    }
+
+    receive() external payable {
+        revert("Ether transfer to proxy");
     }
 }

@@ -1,4 +1,5 @@
-pragma solidity 0.5.13;
+// SPDX-License-Identifier: MIT
+pragma solidity 0.6.10;
 
 //pragma experimental ABIEncoderV2;
 
@@ -38,22 +39,22 @@ contract Liquidator is ALiquidatorUniswap {
     function setPool(address _pool) external onlyOwner {
         pool_ = _pool;
     }
-    function pool() public view returns (address) {
+    function pool() public override view returns (address) {
         return pool_;
     }
-    function outputToken() public view returns (IERC20) {
+    function outputToken() public override view returns (IERC20) {
         return outputToken_;
     }
-    function stakeToken() public view returns (IERC20) {
+    function stakeToken() public override view returns (IERC20) {
         return stakeToken_;
     }
-    function registry() public view returns (Registry) {
+    function registry() public override view returns (Registry) {
         return registry_;
     }
-    function outputUniswapV1() public view returns (UniswapV1) {
+    function outputUniswapV1() public override view returns (UniswapV1) {
         return outputUniswap_;
     }
-    function stakeUniswapV1() public view returns (UniswapV1) {
+    function stakeUniswapV1() public override view returns (UniswapV1) {
         return stakeUniswap_;
     }
 }

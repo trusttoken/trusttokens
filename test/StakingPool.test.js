@@ -4,7 +4,7 @@ const TrustToken = artifacts.require('MockTrustToken')
 const TrueUSD = artifacts.require('MockERC20Token')
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy')
 
-const bytes32 = require('@trusttoken/registry/test/helpers/bytes32.js')
+const bytes32 = require('./helpers/bytes32.js')
 const assertRevert = require('./helpers/assertRevert.js')
 
 const IS_DEPOSIT_ADDRESS = bytes32('isDepositAddress')

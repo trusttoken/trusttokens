@@ -1,6 +1,7 @@
-pragma solidity 0.5.13;
+// SPDX-License-Identifier: MIT
+pragma solidity 0.6.10;
 
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./ValTokenWithHook.sol";
 import "./ClaimableContract.sol";
 
@@ -26,7 +27,7 @@ contract TrustToken is ValTokenWithHook, ClaimableContract {
         initalized = true;
     }
 
-    function registry() public view returns (Registry) {
+    function registry() public view override returns (Registry) {
         return registry_;
     }
 

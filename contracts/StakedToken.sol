@@ -1,8 +1,9 @@
-pragma solidity 0.5.13;
+// SPDX-License-Identifier: MIT
+pragma solidity 0.6.10;
 
 import { StakingAsset } from "./StakingAsset.sol";
 import { AStakedToken } from "./AStakedToken.sol";
-import { Registry } from "@trusttoken/registry/contracts/Registry.sol";
+import { Registry } from "./Registry/Registry.sol";
 import { RegistrySubscriber } from "./RegistrySubscriber.sol";
 
 /**
@@ -33,19 +34,19 @@ contract StakedToken is AStakedToken {
         initalized = true;
     }
 
-    function stakeAsset() public view returns (StakingAsset) {
+    function stakeAsset() public override view returns (StakingAsset) {
         return stakeAsset_;
     }
 
-    function rewardAsset() public view returns (StakingAsset) {
+    function rewardAsset() public override view returns (StakingAsset) {
         return rewardAsset_;
     }
 
-    function registry() public view returns (Registry) {
+    function registry() public override view returns (Registry) {
         return registry_;
     }
 
-    function liquidator() public view returns (address) {
+    function liquidator() public override view returns (address) {
         return liquidator_;
     }
 }

@@ -1,4 +1,5 @@
-pragma solidity 0.5.13;
+// SPDX-License-Identifier: MIT
+pragma solidity 0.6.10;
 
 import {OwnedUpgradeabilityProxy} from "./OwnedUpgradeabilityProxy.sol";
 
@@ -50,7 +51,7 @@ contract TimeOwnedUpgradeabilityProxy is OwnedUpgradeabilityProxy {
     * @dev Allows the proxy owner to upgrade the current version of the proxy.
     * @param implementation representing the address of the new implementation to be set.
     */
-    function upgradeTo(address implementation) public onlyProxyOwner {
+    function upgradeTo(address implementation) public override onlyProxyOwner {
         require(block.timestamp < expiration(), "after expiration date");
         super.upgradeTo(implementation);
     }

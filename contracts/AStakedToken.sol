@@ -1,4 +1,5 @@
-pragma solidity 0.5.13;
+// SPDX-License-Identifier: MIT
+pragma solidity 0.6.10;
 
 import "./ValTokenWithHook.sol";
 import "./ValSafeMath.sol";
@@ -11,7 +12,7 @@ import { StakingAsset } from "./StakingAsset.sol";
  * Accounts stake ERC-20 staking asset and recieve ERC-20 reward asset.
  * StakingOpportunityFactory creates instances of StakedToken
  */
-contract AStakedToken is ValTokenWithHook {
+abstract contract AStakedToken is ValTokenWithHook {
     using ValSafeMath for uint256;
 
     // current representation of rewards per stake
@@ -48,7 +49,7 @@ contract AStakedToken is ValTokenWithHook {
     /**
      * @dev Get unclaimed reward balance for staker
      * @param _staker address of staker
-     * @return claimedRewards_ withdrawable amount of rewards belonging to this staker
+     * @return unclaimedRewards_ withdrawable amount of rewards belonging to this staker
     **/
     function unclaimedRewards(address _staker) public view returns (uint256 unclaimedRewards_) {
         uint256 stake = balanceOf[_staker];
@@ -59,13 +60,13 @@ contract AStakedToken is ValTokenWithHook {
     }
 
     /// @return ERC-20 stake asset
-    function stakeAsset() public view returns (StakingAsset);
+    function stakeAsset() public view virtual returns (StakingAsset);
 
     /// @return ERC-20 reward asset
-    function rewardAsset() public view returns (StakingAsset);
+    function rewardAsset() public view virtual returns (StakingAsset);
 
     /// @return liquidator address
-    function liquidator() public view returns (address);
+    function liquidator() public view virtual returns (address);
 
     // max int size to prevent overflow
     uint256 constant MAX_UINT256 = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
@@ -89,7 +90,7 @@ contract AStakedToken is ValTokenWithHook {
      * Contracts that have this staking token don't know they have rewards
      * This way we an exchange on uniswap or other exchanges
      */
-    function _transferAllArgs(address _from, address _to, uint256 _value) internal resolveSender(_from) {
+    function _transferAllArgs(address _from, address _to, uint256 _value) internal override resolveSender(_from) {
         uint256 fromRewards = claimedRewardsPerStake[_from];
         if (_subBalance(_from, _value) == 0) {
             claimedRewardsPerStake[_from] = 0;
@@ -129,7 +130,7 @@ contract AStakedToken is ValTokenWithHook {
      * Called by initUnstake to burn and modify total supply
      * We use totalSupply to calculate rewards
      */
-    function _burn(address _from, uint256 _value) internal returns (uint256 resultBalance_, uint256 resultSupply_) {
+    function _burn(address _from, uint256 _value) internal override returns (uint256 resultBalance_, uint256 resultSupply_) {
         (resultBalance_, resultSupply_) = super._burn(_from, _value);
         uint256 userClaimedRewardsPerStake = claimedRewardsPerStake[_from];
         uint256 totalRewardsPerStake = cumulativeRewardsPerStake;
@@ -156,7 +157,7 @@ contract AStakedToken is ValTokenWithHook {
      * @dev Overrides from ValTokenWithHook
      * Checks rewards remainder of recipient of mint
      */
-    function _mint(address _to, uint256 _value) internal {
+    function _mint(address _to, uint256 _value) internal override {
         emit Transfer(address(0), _to, _value);
         emit Mint(_to, _value);
         (address to, bool hook) = _resolveRecipient(_to);

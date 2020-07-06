@@ -1,8 +1,9 @@
-pragma solidity 0.5.13;
+// SPDX-License-Identifier: MIT
+pragma solidity 0.6.10;
 
 import { ProxyStorage, Registry } from "./ProxyStorage.sol";
 
-contract RegistrySubscriber is ProxyStorage {
+abstract contract RegistrySubscriber is ProxyStorage {
     // Registry Attributes
     bytes32 constant PASSED_KYCAML = "hasPassedKYC/AML";
     bytes32 constant IS_DEPOSIT_ADDRESS = "isDepositAddress";
@@ -19,7 +20,7 @@ contract RegistrySubscriber is ProxyStorage {
     uint256 constant ACCOUNT_HOOK            = 0x0000ff0000000000000000000000000000000000000000000000000000000000;
     uint256 constant ACCOUNT_HOOK_INV        = 0xffff00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
-    function registry() public view returns (Registry);
+    function registry() public view virtual returns (Registry);
 
     modifier onlyRegistry {
         require(msg.sender == address(registry()));
