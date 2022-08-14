@@ -20,7 +20,7 @@
     "contracts"
   ],
   "dependencies": {
-    "@openzeppelin/contracts": "^3.0.1",
+    "@openzeppelin/contracts": "^4.7.2",
     "@trusttoken/registry": "0.1.2",
     "openzeppelin-solidity": "2.4.0",
     "wjm-airswap-swap": "5.0.1"
